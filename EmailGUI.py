@@ -121,6 +121,9 @@ SMTP_RESPONSE_CODES = {
     554: "Transaction failed",
 }
 
+MAX_RESP_LEN = max([len(SMTP_RESPONSE_CODES[i]) for i in
+                     SMTP_RESPONSE_CODES])
+
 
 # %% Parse arguments
 
@@ -1013,9 +1016,11 @@ class EmailerGUI(EmailPrompt):
             be.'''
             retcode = int(entry_resp.get())
             if retcode not in SMTP_RESPONSE_CODES:
-                msg = "Sorry, I don't know that one!"
+                msg = "Sorry, I don't know that one!" + (" " * (MAX_RESP_LEN -
+                                                                29))
             else:
                 msg = SMTP_RESPONSE_CODES[retcode]
+                msg += (" " * (MAX_RESP_LEN - len(msg)))
             label_code.config(text=msg)
 
         retmen = tk.Toplevel(self.root)
