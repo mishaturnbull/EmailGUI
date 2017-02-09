@@ -120,7 +120,7 @@ SMTP_RESPONSE_CODES = {
     553: "Requested action not taken: mailbox name not allowed",
     554: "Transaction failed",
 }
-    
+
 
 # %% Parse arguments
 
@@ -174,6 +174,10 @@ DEFAULT_FROM = args.FROM
 DEFAULT_SERVER = args.SERVER
 MAX_RETRIES = args.MAX_RETRIES
 DEBUG = args.DEBUG
+
+
+# %% conditional import/setup
+
 if not args.NOGUI:
     # pylint: disable=C0413
     #  we should only really import tkinter if we need it, it's a big
@@ -196,8 +200,6 @@ if not args.NOGUI:
     else:
         assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
                        not something I designed this program to be used with.'
-
-# %% conditional import/setup
 
 # use xrange if python 2 to speed things up
 # in py3, range is what xrange was
@@ -636,9 +638,9 @@ class EmailSender(object):
 
     def _launch(self, nsend, _recur=0, delay=0):
         '''Send `nsend` emails.'''
-        
-        con_per = self['multithreading'][2]        
-        
+
+        con_per = self['multithreading'][2]
+
         def connect():
             if 'localhost' in self['server']:
                 port = int(self['server'].split(':')[1])
@@ -653,9 +655,9 @@ class EmailSender(object):
             server.starttls()
             server.ehlo()
             server.login(self['From'], self['password'])
-            
+
             return server
-        
+
         if not con_per:
             server = connect()
 
@@ -672,7 +674,7 @@ class EmailSender(object):
                 for _ in BEST_RANGE(nsend):
                     if DEBUG:
                         print('Launching {} at ' .format(_) + str(time.time()))
-                    
+
                     if con_per:
                         server = connect()
                     server.sendmail(self['From'], self['to'],
@@ -1001,7 +1003,7 @@ class EmailerGUI(EmailPrompt):
             else:
                 msg = SMTP_RESPONSE_CODES[retcode]
             label_code.config(text=msg)
-        
+
         retmen = tk.Toplevel(self.root)
         retmen.wm_title("Response codes")
         label_resp = tk.Label(retmen, text="Response code: ")
@@ -1011,10 +1013,9 @@ class EmailerGUI(EmailPrompt):
         label_err = tk.Label(retmen, text="Error: ")
         label_err.grid(row=1, column=0, sticky=tk.W)
         label_code = tk.Label(retmen, text=(' ' * 62))
-        label_code.grid(row=1, column=1, sticky=tk.W);
+        label_code.grid(row=1, column=1, sticky=tk.W)
         button_lookup = tk.Button(retmen, text='Look up', command=lookup_code)
         button_lookup.grid(row=3, column=0, sticky=tk.W)
-        
 
     def verify_to(self):
         """Verify the email address the user wants to send to and show
@@ -1200,15 +1201,15 @@ class EmailerGUI(EmailPrompt):
         self.file_entry.insert(0, DEFAULT_ATTACH)
         # server options label
         self.opt_label1 = tk.Label(self.root, text='Server options:')
-        self.opt_label1.grid(row=9, column=2, sticky=tk.W)        
-        
+        self.opt_label1.grid(row=9, column=2, sticky=tk.W)
+
         # max server retry attempts
         self.label_retry = tk.Label(self.root, text='Max. Retries: ')
         self.label_retry.grid(row=10, column=2, sticky=tk.W)
         self.entry_retry = tk.Entry(self.root, width=3)
         self.entry_retry.insert(0, str(MAX_RETRIES))
         self.entry_retry.grid(row=10, column=3, sticky=tk.W)
-        
+
         # connect once or per email
         self.query_conmode = tk.BooleanVar()
         self.query_conmode.set(False)
@@ -1216,11 +1217,10 @@ class EmailerGUI(EmailPrompt):
                                        variable=self.query_conmode,
                                        value=False)
         self.con_per = tk.Radiobutton(self.root, text='Connect per send',
-                                      variable = self.query_conmode,
+                                      variable=self.query_conmode,
                                       value=True)
         self.con_once.grid(row=11, column=2, sticky=tk.W)
         self.con_per.grid(row=12, column=2, sticky=tk.W)
-        
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
@@ -1255,11 +1255,12 @@ class EmailerGUI(EmailPrompt):
         self.menu_top.add_cascade(label='Client', menu=self.menu_clientside)
 
         self.menu_help = tk.Menu(self.menu_top, tearoff=0)
-        self.menu_help.add_command(label='Documentation', command=handler_button_help)
+        self.menu_help.add_command(label='Documentation',
+                                   command=handler_button_help)
         self.menu_help.add_command(label='SMTP Response code lookup',
                                    command=self.check_retcode)
         self.menu_top.add_cascade(label='Help', menu=self.menu_help)
-        
+
         self.root.config(menu=self.menu_top)
 
         self.entry_delay = tk.Entry(self.root, width=3)
