@@ -231,6 +231,7 @@ class FakeSTDOUT(object):
         self.terminal.flush()
 
     def FSO_close(self):
+        '''Close the log files.'''
         self.log.close()
 
 sys.stdout = FakeSTDOUT(sys.stdout, LOG_STDOUT)
@@ -642,6 +643,7 @@ class EmailSender(object):
         con_per = self['multithreading'][2]
 
         def connect():
+            '''Connect to the server.  Function-ized to save typing.'''
             if 'localhost' in self['server']:
                 port = int(self['server'].split(':')[1])
                 subprocess.Popen(["python", "-m smtpd", "-n", "-c",
@@ -965,6 +967,15 @@ class EmailerGUI(EmailPrompt):
             self.delay = delay
         if self.files == ['']:
             self.files = []
+
+        # Pylint yells about this.
+        # It doesn't like that we redefine MAX_RETRIES inside something,
+        # and it doesn't see it being used in this method.
+        # It is right about both, so I didn't silence it, BUT:
+        # Yeah, redefining names is bad but the value isn't changed by the
+        # program, only the user.
+        # It's not used in this method, but is used later in the program
+        # and its value can make a difference in execution.
         MAX_RETRIES = int(self.entry_retry.get())
         if not all([bool(x) for x in [self.server, self.frm, self.text,
                                       self.subject, self.amount, self.rcpt]]):
@@ -996,7 +1007,10 @@ class EmailerGUI(EmailPrompt):
         EmailPrompt._make_sender(self, i)
 
     def check_retcode(self):
+        '''Look up an SMTP return error code and get its message.'''
         def lookup_code():
+            '''Do the dirty work of setting the message to what it should
+            be.'''
             retcode = int(entry_resp.get())
             if retcode not in SMTP_RESPONSE_CODES:
                 msg = "Sorry, I don't know that one!"
