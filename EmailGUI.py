@@ -60,9 +60,9 @@ from email.utils import COMMASPACE, formatdate
 from email import encoders
 
 # yeah, Tkinter imports are missing.
-# they're conditionally imported in the function main() near the bottom
-# of the program, so they aren't loaded if we run in nogui mode and they
-# arent needed.
+# they're conditionally imported in the conditional imports section further
+# down after the arguments  so they aren't loaded if we run in nogui mode and 
+# they arent needed.
 
 __version__ = '1.1'
 __author__ = 'Misha Turnbull'
@@ -914,21 +914,10 @@ class EmailerGUI(EmailPrompt):
                 # therefore shouldn't loop here.
                 self.send_msg()
             except smtplib.SMTPResponseException as exc:
-
-                # pylint might yell here, about W1504:
-                #
-                # Using type() instead of isinstance() for a typecheck.
-                #
-                # in this case, to use isinstance(), we'd have to do something
-                # with any(...) that would be way uglier than this.
-
-                # C0123 is the same thing as W1504, but it's not W1504...
-                # pylint: disable=C0123
-                if type(exc) in POPUP_ERRORS:
+                if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(TITLE, exc.smtp_error)
             except smtplib.SMTPException as exc:
-                # pylint: disable=C0123
-                if type(exc) in POPUP_ERRORS:
+                if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(TITLE, exc.args[0])
 
             # we're done here, notify the user that it's safe to exit
