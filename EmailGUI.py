@@ -93,6 +93,7 @@ LOG_STDOUT = 'Email_Log.out'
 LOG_STDERR = 'Email_Log_Err.out'
 MAX_RETRIES = 5
 CON_PER = False
+DEFAULT_DISPLAY_FROM = "spammer@spam.com"
 
 SMTP_RESPONSE_CODES = {
     200: "Nonstandard success response",
@@ -559,9 +560,11 @@ class EmailSender(object):
     def build_message(self):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
-        msg.add_header('reply-to', 'fake@fake.com')
-        msg['From'] = '\"fake@fake.com\" ' + "<" + "fake@fake.com" + ">"
-        msg.add_header('X-Google-Originally-From', '"fake@fake.com" <fake@fake.com>')
+        msg.add_header('reply-to', self['display_from'])
+        msg['From'] = "\"" + self['display_from'] + "\" <" + \
+                      self['display_from'] + ">"
+        msg.add_header('X-Google-Original-From', 
+                       '"{df}" <{df}>'.format(df=self['display_from']))
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
         else:
@@ -785,7 +788,8 @@ class EmailPrompt(object):
                                    attach=self.files,
                                    password=self.password[i],
                                    amount=self.amount,
-                                   delay=self.delay)
+                                   delay=self.delay,
+                                   display_from=self.display_from)
 
     def send_msg(self):
         '''FIRE THE CANNONS!'''
@@ -956,6 +960,7 @@ class EmailerGUI(EmailPrompt):
            Raises EmailSendError if something important is missing.'''
         self.server = self.entry_server.get()
         self.frm = self.entry_from.get()
+        self.display_from = self.entry_df.get()
         self.password = self.entry_password.get() or args.PASSWORD
         self.text = self.entry_text.get()
         self.subject = self.entry_subject.get()
@@ -1156,11 +1161,16 @@ class EmailerGUI(EmailPrompt):
         self.entry_text.insert(0, DEFAULT_TEXT)
 
         # from
-        self.label_from = tk.Label(self.root, text='From: ')
+        self.label_from = tk.Label(self.root, text='From | display as: ')
         self.label_from.grid(row=3, column=0, sticky=tk.W)
-        self.entry_from = tk.Entry(self.root, width=width)
-        self.entry_from.grid(row=3, column=1, columnspan=9, sticky=tk.W + tk.E)
+        self.entry_from = tk.Entry(self.root, width=int(width/3 * 2))
+        self.entry_from.grid(row=3, column=1, columnspan=6, sticky=tk.W + tk.E)
         self.entry_from.insert(0, DEFAULT_FROM)
+        
+        # display from
+        self.entry_df = tk.Entry(self.root, width=int(width/3))
+        self.entry_df.grid(row=3, column=7, columnspan=3, sticky=tk.W + tk.E)
+        self.entry_df.insert(0, DEFAULT_DISPLAY_FROM)
 
         # from password
         self.label_password = tk.Label(self.root, text='Password: ')
