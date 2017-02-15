@@ -20,15 +20,6 @@ from __future__ import (division, print_function, generators, absolute_import)
 # R020160506T0850
 # EmailGUI.py
 
-# backwards compatible - runs on python 2 or 3
-# tested [successfully] on:
-# - windows 10 (GUI, prompt, commandline, GUI multi-account, verification sub)
-# - windows 7 (GUI)
-# - osx el capitan (GUI)
-# - osx sierra (GUI)
-# - kali linux 2016.1 (GUI)
-# - kali linux 2016.2 (GUI)
-
 # pylint: disable=W0511
 # pylint yells at me for being organized and keeping track of goals -- it
 # doesn't like TODO comments
@@ -193,6 +184,7 @@ if not args.NOGUI:
         import tkinter as tk
         import tkinter.messagebox as messagebox
         import tkinter.filedialog as filedialog
+        import tkinter.scrolledtext as scrolledtext
     elif sys.version_info.major == 2:
         # pylint: disable=E0401
         # pylint complains about not finding tkMessageBox etc
@@ -202,6 +194,7 @@ if not args.NOGUI:
         import Tkinter as tk
         import tkMessageBox as messagebox
         import tkFileDialog as filedialog
+        import ScrolledText as scrolledtext
     else:
         assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
                        not something I designed this program to be used with.'
@@ -418,10 +411,6 @@ Multithreading:
 
 
 # %% Helper functions
-def handler_button_help():
-    '''Show the help dialog.'''
-    messagebox.showinfo(title='EmailGUI Help', message=GUI_DOC)
-
 
 def suggest_thread_amt(num_emails):
     '''Given a total number of emails to send `num_emails`, determine which
@@ -1032,6 +1021,14 @@ class EmailerGUI(EmailPrompt):
         label_code.grid(row=1, column=1, sticky=tk.W)
         button_lookup = tk.Button(retmen, text='Look up', command=lookup_code)
         button_lookup.grid(row=3, column=0, sticky=tk.W)
+        
+    def handler_button_help(self):
+        helper = tk.Toplevel(self.root)
+        helper.title("Help")
+        txt = scrolledtext.ScrolledText(helper)
+        txt.insert(tk.END, GUI_DOC)
+        txt['font'] = ('liberation mono', '10')
+        txt.pack(expand=True, fill='both')
 
     def verify_to(self):
         """Verify the email address the user wants to send to and show
@@ -1122,7 +1119,7 @@ class EmailerGUI(EmailPrompt):
         # hs = int(self.root.winfo_screenheight() / 2)
         self.root.title(TITLE)
 
-        # if the length of DEFAULT_TEXT is greather than 180, use 180 as the
+        # if the length of DEFAULT_TEXT is greather than 100, use 100 as the
         # limit of the window width.  prevents window being wider than the
         # screen on smaller screens (laptops)
         width = min([len(DEFAULT_TEXT), 100])
@@ -1277,7 +1274,7 @@ class EmailerGUI(EmailPrompt):
 
         self.menu_help = tk.Menu(self.menu_top, tearoff=0)
         self.menu_help.add_command(label='Documentation',
-                                   command=handler_button_help)
+                                   command=self.handler_button_help)
         self.menu_help.add_command(label='SMTP Response code lookup',
                                    command=self.check_retcode)
         self.menu_top.add_cascade(label='Help', menu=self.menu_help)
