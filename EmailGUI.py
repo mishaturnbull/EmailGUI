@@ -25,8 +25,9 @@ from __future__ import (division, print_function, generators, absolute_import)
 # - windows 10 (GUI, prompt, commandline, GUI multi-account, verification sub)
 # - windows 7 (GUI)
 # - osx el capitan (GUI)
-# - kali linux 2106.1 (GUI)
-# - kali linux 2106.2 (GUI)
+# - osx sierra (GUI)
+# - kali linux 2016.1 (GUI)
+# - kali linux 2016.2 (GUI)
 
 # pylint: disable=W0511
 # pylint yells at me for being organized and keeping track of goals -- it
@@ -558,7 +559,9 @@ class EmailSender(object):
     def build_message(self):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
-        msg['From'] = self['From']
+        msg.add_header('reply-to', 'fake@fake.com')
+        msg['From'] = '\"fake@fake.com\" ' + "<" + "fake@fake.com" + ">"
+        msg.add_header('X-Google-Originally-From', '"fake@fake.com" <fake@fake.com>')
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
         else:
