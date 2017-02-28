@@ -1,0 +1,29 @@
+{
+    "from": "blerghhh86@gmail.com, blerghhh87@gmail.com, blerghhh88@gmail.com, blerghhh89@gmail.com",
+    "to": "",
+    "server": "smtp.gmail.com:586",
+    "subject": "Apology",
+    "attach": "",
+    "multithread": null,
+    "title": "SpamBotFromHell",
+    "debug": false,
+    "delay": 0,
+    "max_retries": 5,
+    "display_from": "spammer@spam.com",
+    "text": [
+        "Dear recipient,",
+        "I am writing to apologize for incessantly writing you emails.  It",
+        "must be tiresome to spend all day deleting them.",
+        "",
+        "P.S. Please forgive me for sending this email.  I shall immediately",
+        "dispatch a second email in apology."
+    ],
+    "amount": 10,
+    "log_stdout": "Email_Log.out",
+    "log_stderr": "Email_Log_Err.out",
+    "con_per": false,
+    "confirmation_msg": [
+        "Are you certain you wish to proceed?",
+        "This cannot be undone and can have dangerous results!"
+    ]
+}

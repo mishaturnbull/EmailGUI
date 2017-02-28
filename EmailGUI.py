@@ -44,6 +44,7 @@ import time
 import smtplib
 import subprocess
 import os
+import json
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -52,39 +53,17 @@ from email import encoders
 
 # yeah, Tkinter imports are missing.
 # they're conditionally imported in the conditional imports section further
-# down after the arguments  so they aren't loaded if we run in nogui mode and 
+# down after the arguments  so they aren't loaded if we run in nogui mode and
 # they arent needed.
 
-__version__ = '1.1'
-__author__ = 'Misha Turnbull'
-__author_email__ = 'blerghhh86@gmail.com'  # yes, really.  it's me.
-__last_update__ = '20161210'
+# %% defaults
 
-DEFAULT_FROM = 'blerghhh86@gmail.com, blerghhh87@gmail.com,\
- blerghhh88@gmail.com, blerghhh89@gmail.com'
-DEFAULT_TO = ''
-DEFAULT_SUBJECT = 'Apology'
-DEFAULT_TEXT = """Dear recipient,
-I am writing to apologize for incessantly writing you emails.  It must be
-tiresome to spend all day deleting them.
-
-
-P.S. Please forgive me for sending this email.  I shall immediately dispatch
-a second email in apology."""
-DEFAULT_SERVER = 'smtp.gmail.com:587'  # could also use port 465
-DEFAULT_AMOUNT = '10'
-DEFAULT_ATTACH = ''
-DEFAULT_DELAY = '0'
-DEFAULT_MULTITHREAD = None  # set this later, after suggest_thread_amt()
-TITLE = 'SpamBotFromHell'
-DEBUG = False
-CONFIRMATION_MSG = """Are you certain you wish to proceed?
-This cannot be undone and can have dangerous results!"""
-LOG_STDOUT = 'Email_Log.out'
-LOG_STDERR = 'Email_Log_Err.out'
-MAX_RETRIES = 5
-CON_PER = False
-DEFAULT_DISPLAY_FROM = "spammer@spam.com"
+try:
+    with open("settings.json", 'r') as config:
+        DEFAULTS = json.load(config)
+except FileNotFoundError as exc:
+    print("Couldn't find config file!")
+    sys.exit(0)
 
 SMTP_RESPONSE_CODES = {
     200: "Nonstandard success response",
@@ -139,22 +118,22 @@ parser.add_argument('-c', '--commandline', dest='COMMANDLINE',
                     action='store_const', const=True, default=False,
                     help='pass parameters as arguments to command')
 parser.add_argument('--amount', nargs=1, dest='AMOUNT',
-                    type=int, required=False, default=DEFAULT_AMOUNT,
+                    type=int, required=False, default=DEFAULTS['amount'],
                     help='amount of emails to send')
 parser.add_argument('--rcpt', nargs=1, dest='RCPT',
-                    type=str, required=False, default=DEFAULT_TO,
+                    type=str, required=False, default=DEFAULTS['to'],
                     help='unlucky recipient of emails')
 parser.add_argument('--from', nargs=1, dest='FROM',
-                    type=str, required=False, default=DEFAULT_FROM,
+                    type=str, required=False, default=DEFAULTS['from'],
                     help='your (sender\'s) email address')
 parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
                     type=str, required=False,
                     help='your (sender\'s) email password')
 parser.add_argument('--server', nargs=1, dest='SERVER',
-                    type=str, required=False, default=DEFAULT_SERVER,
+                    type=str, required=False, default=DEFAULTS['server'],
                     help='smtp server to send emails from')
 parser.add_argument('--max-retries', nargs=1, dest='MAX_RETRIES',
-                    type=int, required=False, default=MAX_RETRIES,
+                    type=int, required=False, default=DEFAULTS['max_retries'],
                     help='the maximum number of times the program will'
                          ' attempt to reconnect to the server if ocnnection'
                          ' is lost')
@@ -162,14 +141,14 @@ args = parser.parse_args()
 
 if isinstance(args.AMOUNT, list):
     # this happens sometimes
-    DEFAULT_AMOUNT = args.AMOUNT[0]
+    DEFAULTS['amount'] = args.AMOUNT[0]
 else:
-    DEFAULT_AMOUNT = args.AMOUNT
-DEFAULT_TO = args.RCPT
-DEFAULT_FROM = args.FROM
-DEFAULT_SERVER = args.SERVER
-MAX_RETRIES = args.MAX_RETRIES
-DEBUG = args.DEBUG
+    DEFAULTS['amount'] = args.AMOUNT
+DEFAULTS['to'] = args.RCPT
+DEFAULTS['from'] = args.FROM
+DEFAULTS['server'] = args.SERVER
+DEFAULTS['max_retries'] = args.MAX_RETRIES
+DEFAULTS['debug'] = args.DEBUG
 
 
 # %% conditional import/setup
@@ -232,8 +211,8 @@ class FakeSTDOUT(object):
         '''Close the log files.'''
         self.log.close()
 
-sys.stdout = FakeSTDOUT(sys.stdout, LOG_STDOUT)
-sys.stderr = FakeSTDOUT(sys.stderr, LOG_STDERR)
+sys.stdout = FakeSTDOUT(sys.stdout, DEFAULTS['log_stdout'])
+sys.stderr = FakeSTDOUT(sys.stderr, DEFAULTS['log_stderr'])
 
 
 class EmailSendError(Exception):
@@ -335,23 +314,23 @@ GUI_DOC = """
 A brief guide to using EmailGUI.py's GUI (Graphical User Interface).
 
 Text entry fields:
-    # emails: default {DEFAULT_AMOUNT}.  Specifies number of emails to send.
+    # emails: default {AMOUNT}.  Specifies number of emails to send.
         Note that this is # emails PER OUTBOUND ACCOUNT, NOT TOTAL!
-    Subject: default '{DEFAULT_SUBJECT}'.  Specifies the subject line of
+    Subject: default '{SUBJECT}'.  Specifies the subject line of
         the emails.
-    From: default '{DEFAULT_FROM}'.  Specifies your (the sender) email address.
+    From: default '{FROM}'.  Specifies your (the sender) email address.
         Multiple accounts are allowed, split with commas.
     Password: no default.  Specifies your email account password.
         Multiple passwords (for multiple accounts) are allowed, split with
         commas.
-    To: default '{DEFAULT_TO}'.  Specifies the recipient's email address.
+    To: default '{TO}'.  Specifies the recipient's email address.
         The 'Verify' button at the left-hand side of the text bar will
         attempt to determine whether or not the specified address is valid.**
-    Server: default '{DEFAULT_SERVER}'.  Specifies the server to use for SMTP.
+    Server: default '{SERVER}'.  Specifies the server to use for SMTP.
         Multiple servers (for multiple accounts) are allowed, split with
         commas.
-    Message text: default '{DEFAULT_TEXT}'.  Specifies message content.
-    Attachments: default '{DEFAULT_ATTACH}'.  Specifies files to be attached.
+    Message text: default '{TEXT}'.  Specifies message content.
+    Attachments: default '{ATTACH}'.  Specifies files to be attached.
                  The 'Browse' button at the left-hand side of the text
                  bar provides a file browser window for easy file selection.
 
@@ -401,13 +380,13 @@ Multithreading:
        specified in [num], since there are [num] threads spawned as well as
        the main thread still running.
     **: this is not guaranteed to return the correct value!!
-""".format(DEFAULT_AMOUNT=DEFAULT_AMOUNT,
-           DEFAULT_SUBJECT=DEFAULT_SUBJECT,
-           DEFAULT_FROM=DEFAULT_FROM,
-           DEFAULT_TO=DEFAULT_TO,
-           DEFAULT_SERVER=DEFAULT_SERVER,
-           DEFAULT_TEXT=DEFAULT_TEXT,
-           DEFAULT_ATTACH=DEFAULT_ATTACH)
+""".format(AMOUNT=DEFAULTS['amount'],
+           SUBJECT=DEFAULTS['subject'],
+           FROM=DEFAULTS['from'],
+           TO=DEFAULTS['to'],
+           SERVER=DEFAULTS['server'],
+           TEXT=DEFAULTS['text'],
+           ATTACH=DEFAULTS['attach'])
 
 
 # %% Helper functions
@@ -480,7 +459,7 @@ will we return 180.
         # anti-spam
         return ('none', 180, True)
 
-DEFAULT_MULTITHREAD = suggest_thread_amt(int(DEFAULT_AMOUNT))
+DEFAULTS['multithread'] = suggest_thread_amt(int(DEFAULTS['amount']))
 
 
 def cleanup():
@@ -552,7 +531,7 @@ class EmailSender(object):
         msg.add_header('reply-to', self['display_from'])
         msg['From'] = "\"" + self['display_from'] + "\" <" + \
                       self['display_from'] + ">"
-        msg.add_header('X-Google-Original-From', 
+        msg.add_header('X-Google-Original-From',
                        '"{df}" <{df}>'.format(df=self['display_from']))
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
@@ -638,18 +617,18 @@ class EmailSender(object):
     def _launch(self, nsend, _recur=0, delay=0):
         '''Send `nsend` emails.'''
 
-        con_per = self['multithreading'][2]
+        DEFAULTS['con_per'] = self['multithreading'][2]
 
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
             if 'localhost' in self['server']:
                 port = int(self['server'].split(':')[1])
                 subprocess.Popen(["python", "-m smtpd", "-n", "-c",
-                                  "DebuggingServer localhost:{}".format(port)])
+                                  "DEFAULTS['debug']gingServer localhost:{}".format(port)])
                 server = smtplib.SMTP('localhost', port)
             else:
                 server = smtplib.SMTP(self['server'])
-            if DEBUG:
+            if DEFAULTS['debug']:
                 server.set_debuglevel(1)
             server.ehlo_or_helo_if_needed()
             server.starttls()
@@ -658,7 +637,7 @@ class EmailSender(object):
 
             return server
 
-        if not con_per:
+        if not DEFAULTS['con_per']:
             server = connect()
 
         # try to send the emails.
@@ -672,19 +651,19 @@ class EmailSender(object):
             # counter per say.
             if self['multithreading'][0] == 'none':
                 for _ in BEST_RANGE(nsend):
-                    if DEBUG:
+                    if DEFAULTS['debug']:
                         print('Launching {} at ' .format(_) + str(time.time()))
 
-                    if con_per:
+                    if DEFAULTS['con_per']:
                         server = connect()
                     server.sendmail(self['From'], self['to'],
                                     mime.format(num=_ + 1))
                     time.sleep(int(delay))
             elif self['multithreading'][0] == 'lim':
                 for _ in BEST_RANGE(nsend):
-                    if DEBUG:
+                    if DEFAULTS['debug']:
                         print('Launching {} at '.format(_) + str(time.time()))
-                    if con_per:
+                    if DEFAULTS['con_per']:
                         server = connect()
                     server.sendmail(self['From'], self['to'], mime)
 
@@ -695,7 +674,7 @@ class EmailSender(object):
             # try to resend and pray for the best
             sys.stderr.write('=== Server disconnected.  Trying again. ===')
             # use _recur to prevent recursion errors if the internet is out
-            if _recur <= MAX_RETRIES:
+            if _recur <= DEFAULTS['max_retries']:
                 # send however many emails are left over
                 self._launch(nsend - _, _recur=_recur + 1)
             else:
@@ -712,7 +691,7 @@ class EmailSender(object):
         # make sure everything is ready
         self._check_config()
         self.build_message()
-        if DEBUG:
+        if DEFAULTS['debug']:
             mime = self['MIMEMessage'].as_string()
             print("Launching {} copies: \n{}".format(self['amount'], mime))
         mt_mode = self['multithreading'][0]
@@ -782,7 +761,7 @@ class EmailPrompt(object):
 
     def send_msg(self):
         '''FIRE THE CANNONS!'''
-        if DEBUG:
+        if DEFAULTS['debug']:
             print('Sending msg: \n{}\nfrom {} {} times'.format(self.text,
                                                                self.server,
                                                                self.amount))
@@ -890,7 +869,7 @@ class EmailerGUI(EmailPrompt):
            popup saying why.'''
 
         # ask for confirmation
-        if messagebox.askyesno(TITLE, CONFIRMATION_MSG):
+        if messagebox.askyesno(DEFAULTS['title'], DEFAULTS['confirmation_msg']):
             try:
                 self.create_msg_config()
                 # dear reader, you might be inclined to expect something like:
@@ -904,10 +883,10 @@ class EmailerGUI(EmailPrompt):
                 self.send_msg()
             except smtplib.SMTPResponseException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
-                    messagebox.showerror(TITLE, exc.smtp_error)
+                    messagebox.showerror(DEFAULTS['title'], exc.smtp_error)
             except smtplib.SMTPException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
-                    messagebox.showerror(TITLE, exc.args[0])
+                    messagebox.showerror(DEFAULTS['title'], exc.args[0])
 
             # we're done here, notify the user that it's safe to exit
             # This is okay on multithreading modes because exiting this
@@ -958,14 +937,14 @@ class EmailerGUI(EmailPrompt):
             self.files = []
 
         # Pylint yells about this.
-        # It doesn't like that we redefine MAX_RETRIES inside something,
+        # It doesn't like that we redefine DEFAULTS['max_retries'] inside something,
         # and it doesn't see it being used in this method.
         # It is right about both, so I didn't silence it, BUT:
         # Yeah, redefining names is bad but the value isn't changed by the
         # program, only the user.
         # It's not used in this method, but is used later in the program
         # and its value can make a difference in execution.
-        MAX_RETRIES = int(self.entry_retry.get())
+        DEFAULTS['max_retries'] = int(self.entry_retry.get())
         if not all([bool(x) for x in [self.server, self.frm, self.text,
                                       self.subject, self.amount, self.rcpt]]):
             raise EmailSendError("One or more required fields left blank!")
@@ -1021,7 +1000,7 @@ class EmailerGUI(EmailPrompt):
         label_code.grid(row=1, column=1, sticky=tk.W)
         button_lookup = tk.Button(retmen, text='Look up', command=lookup_code)
         button_lookup.grid(row=3, column=0, sticky=tk.W)
-        
+
     def handler_button_help(self):
         helper = tk.Toplevel(self.root)
         helper.title("Help")
@@ -1035,7 +1014,7 @@ class EmailerGUI(EmailPrompt):
         a message box containing the result.  Graphical mode only."""
         def VRFY():
             '''Button handler for verify mode using SMTP VRFY verb.'''
-            serv = self.entry_server.get() or DEFAULT_SERVER
+            serv = self.entry_server.get() or DEFAULTS['server']
             label_VRFY_res.config(text=' ')
             resp = verify_to(entry_to.get(), serv)
             c = resp[0]
@@ -1051,7 +1030,7 @@ class EmailerGUI(EmailPrompt):
 
         def MAIL():
             '''Button handler for verify mode using email test.'''
-            serv = self.entry_server.get() or DEFAULT_SERVER
+            serv = self.entry_server.get() or DEFAULTS['server']
             label_MAIL_res.config(text=' ')
             resp = verify_to_email(entry_to.get(),
                                    serv,
@@ -1082,7 +1061,7 @@ class EmailerGUI(EmailPrompt):
         label_from.grid(row=0, column=0, sticky=tk.W)
         entry_from = tk.Entry(vrfymen, width=40)
         entry_from.grid(row=0, column=1, columnspan=2, sticky=tk.W)
-        entry_from.insert(0, DEFAULT_FROM.split(',')[0])
+        entry_from.insert(0, DEFAULTS['from'].split(',')[0])
         label_password = tk.Label(vrfymen, text='Verify password:')
         label_password.grid(row=1, column=0, sticky=tk.W)
         entry_password = tk.Entry(vrfymen, width=40, show='*')
@@ -1117,19 +1096,19 @@ class EmailerGUI(EmailPrompt):
         '''Build that ugly GUI.'''
         # ws = int(self.root.winfo_screenwidth() / 2)
         # hs = int(self.root.winfo_screenheight() / 2)
-        self.root.title(TITLE)
+        self.root.title(DEFAULTS['title'])
 
-        # if the length of DEFAULT_TEXT is greather than 100, use 100 as the
+        # if the length of DEFAULTS['text'] is greather than 100, use 100 as the
         # limit of the window width.  prevents window being wider than the
         # screen on smaller screens (laptops)
-        width = min([len(DEFAULT_TEXT), 100])
+        width = min([len(DEFAULTS['text']), 100])
 
         # number to send
         self.label_amount = tk.Label(self.root, text='# emails: ')
         self.label_amount.grid(row=1, column=0, sticky=tk.W)
         self.entry_amount = tk.Entry(self.root, width=5)
         self.entry_amount.grid(row=1, column=1, sticky=tk.W)
-        self.entry_amount.insert(0, DEFAULT_AMOUNT)
+        self.entry_amount.insert(0, DEFAULTS['amount'])
 
         # subject
         self.label_subject = tk.Label(self.root, text='Subject: ')
@@ -1137,26 +1116,26 @@ class EmailerGUI(EmailPrompt):
         self.entry_subject = tk.Entry(self.root, width=width)
         self.entry_subject.grid(row=2, column=1, columnspan=9,
                                 sticky=tk.W + tk.E)
-        self.entry_subject.insert(0, DEFAULT_SUBJECT)
+        self.entry_subject.insert(0, DEFAULTS['subject'])
 
         # text
         self.label_text = tk.Label(self.root, text='Message text: ')
         self.label_text.grid(row=7, column=0, sticky=tk.W)
         self.entry_text = tk.Entry(self.root, width=width)
         self.entry_text.grid(row=7, column=1, columnspan=9, sticky=tk.W + tk.E)
-        self.entry_text.insert(0, DEFAULT_TEXT)
+        self.entry_text.insert(0, DEFAULTS['text'])
 
         # from
         self.label_from = tk.Label(self.root, text='From | display as: ')
         self.label_from.grid(row=3, column=0, sticky=tk.W)
         self.entry_from = tk.Entry(self.root, width=int(width/3 * 2))
         self.entry_from.grid(row=3, column=1, columnspan=6, sticky=tk.W + tk.E)
-        self.entry_from.insert(0, DEFAULT_FROM)
-        
+        self.entry_from.insert(0, DEFAULTS['from'])
+
         # display from
         self.entry_df = tk.Entry(self.root, width=int(width/3))
         self.entry_df.grid(row=3, column=7, columnspan=3, sticky=tk.W + tk.E)
-        self.entry_df.insert(0, DEFAULT_DISPLAY_FROM)
+        self.entry_df.insert(0, DEFAULTS['display_from'])
 
         # from password
         self.label_password = tk.Label(self.root, text='Password: ')
@@ -1174,7 +1153,7 @@ class EmailerGUI(EmailPrompt):
         self.label_to.grid(row=5, column=0, sticky=tk.W)
         self.entry_to = tk.Entry(self.root, width=width)
         self.entry_to.grid(row=5, column=2, columnspan=8)
-        self.entry_to.insert(0, DEFAULT_TO)
+        self.entry_to.insert(0, DEFAULTS['to'])
 
         # check email
         self.button_vrfy = tk.Button(self.root, text='Verify',
@@ -1187,14 +1166,14 @@ class EmailerGUI(EmailPrompt):
         self.entry_server = tk.Entry(self.root, width=width)
         self.entry_server.grid(row=6, column=1, columnspan=9,
                                sticky=tk.W + tk.E)
-        self.entry_server.insert(0, DEFAULT_SERVER)
+        self.entry_server.insert(0, DEFAULTS['server'])
 
         # multithreading
         self.multithread_label = tk.Label(self.root,
                                           text='Multithreading mode:')
         self.multithread_label.grid(row=9, column=0, sticky=tk.W)
         self.query_multithreading = tk.StringVar()
-        self.query_multithreading.set(DEFAULT_MULTITHREAD[0])
+        self.query_multithreading.set(DEFAULTS['multithread'][0])
         self.mt_none = tk.Radiobutton(self.root, text='None',
                                       variable=self.query_multithreading,
                                       value='none')
@@ -1208,7 +1187,7 @@ class EmailerGUI(EmailPrompt):
         self.mt_lim.grid(row=11, column=0, sticky=tk.W)
         self.mt_ulim.grid(row=12, column=0, sticky=tk.W)
         self.n_threads = tk.Entry(self.root, width=3)
-        self.n_threads.insert(0, DEFAULT_MULTITHREAD[1])
+        self.n_threads.insert(0, DEFAULTS['multithread'][1])
         self.n_threads.grid(row=11, column=1, sticky=tk.W)
 
         # file attachments
@@ -1216,7 +1195,7 @@ class EmailerGUI(EmailPrompt):
         self.file_label.grid(row=8, column=0, sticky=tk.W)
         self.file_entry = tk.Entry(self.root, width=width)
         self.file_entry.grid(row=8, column=2, columnspan=8)
-        self.file_entry.insert(0, DEFAULT_ATTACH)
+        self.file_entry.insert(0, DEFAULTS['attach'])
         # server options label
         self.opt_label1 = tk.Label(self.root, text='Server options:')
         self.opt_label1.grid(row=9, column=2, sticky=tk.W)
@@ -1225,7 +1204,7 @@ class EmailerGUI(EmailPrompt):
         self.label_retry = tk.Label(self.root, text='Max. Retries: ')
         self.label_retry.grid(row=10, column=2, sticky=tk.W)
         self.entry_retry = tk.Entry(self.root, width=3)
-        self.entry_retry.insert(0, str(MAX_RETRIES))
+        self.entry_retry.insert(0, str(DEFAULTS['max_retries']))
         self.entry_retry.grid(row=10, column=3, sticky=tk.W)
 
         # connect once or per email
@@ -1283,12 +1262,12 @@ class EmailerGUI(EmailPrompt):
 
         self.entry_delay = tk.Entry(self.root, width=3)
         self.entry_delay.grid(row=10, column=1, sticky=tk.W)
-        self.entry_delay.insert(0, DEFAULT_DELAY)
+        self.entry_delay.insert(0, DEFAULTS['delay'])
 
-        # label debug mode if it is on
-        if DEBUG:
-            label_debug = tk.Label(self.root, text='DEBUG')
-            label_debug.grid(row=0, column=0)
+        # label DEFAULTS['debug'] mode if it is on
+        if DEFAULTS['debug']:
+            label_DEBUG = tk.Label(self.root, text='DEBUG')
+            label_DEBUG.grid(row=0, column=0)
 
 
 # %% main
