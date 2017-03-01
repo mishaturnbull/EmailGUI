@@ -1,0 +1,69 @@
+A brief guide to using EmailGUI.py's GUI (Graphical User Interface).
+
+Text entry fields:
+    # emails: default {AMOUNT}.  Specifies number of emails to send.
+        Note that this is # emails PER OUTBOUND ACCOUNT, NOT TOTAL!
+    Subject: default '{SUBJECT}'.  Specifies the subject line of
+        the emails.
+    From: default '{FROM}'.  Specifies your (the sender) email address.
+        Multiple accounts are allowed, split with commas.
+    Password: no default.  Specifies your email account password.
+        Multiple passwords (for multiple accounts) are allowed, split with
+        commas.
+    To: default '{TO}'.  Specifies the recipient's email address.
+        The 'Verify' button at the left-hand side of the text bar will
+        attempt to determine whether or not the specified address is valid.**
+    Server: default '{SERVER}'.  Specifies the server to use for SMTP.
+        Multiple servers (for multiple accounts) are allowed, split with
+        commas.
+    Message text: default '{TEXT}'.  Specifies message content.
+    Attachments: default '{ATTACH}'.  Specifies files to be attached.
+                 The 'Browse' button at the left-hand side of the text
+                 bar provides a file browser window for easy file selection.
+
+Using multiple accounts:
+    To send from multiple accounts, enter a list of the addresses to be used
+    in the 'From' field, comma-separated.  Whitespace between commas and
+    addresses is allowable.  If the accounts have different passwords and/or
+    servers, those must be entered in parallel in the password field and/or the
+    server field respectively.  If less passwords and/or servers are given than
+    accounts, the remainder of from addresses will be paired with the LAST
+    GIVEN password and/or server.  If less from accounts are given than either
+    passwords or servers, the remainder of passwords and/or servers will be
+    ignored.
+
+    It should be noted that the '# emails' field represents the number of
+    emails to be sent FROM EACH ACCOUNT.  It does NOT divide the number given
+    into any amount between accounts.
+
+Menus:
+    Email:
+        Send: Asks for confirmation, then sends the email[s] as configured.
+        Auto-Select Threading: Given the number of emails to be sent,
+                               automatically set the multithreading mode so
+                               that it is A. most likely to succeed and B.
+                               faster.
+    Client:
+        Cleanup: Erase any temporary files written by the program.
+        Exit: Run cleanup, then exit the program.  Provides the same
+              functionality as the 'X' (close) button.
+        Exit without cleanup: Exit the program without cleaning up temp files.
+        Write tempEmail.py: Write any necessary temporary files.
+
+    Help: display this help information.
+
+Multithreading:
+    This program is capable of using multiple threads (multithreading) to send
+    more than one email simultaneously.  There are 3 modes to do so:
+        None [delay]: Do not use multithreading - simply send each email
+                      from the main thread.  If [delay] is not 0, the program
+                      will wait [delay] seconds between each email.
+        Limited [num]: Use only [num] threads.  Each thread gets a certain
+                       amount of emails to send, and any left over are
+                       sent from the parent thread*.
+        Unlimited: Spawn a new thread for each email to be sent.
+
+    *: this can sometimes mean that the total number of threads is 1 more than
+       specified in [num], since there are [num] threads spawned as well as
+       the main thread still running.
+    **: this is not guaranteed to return the correct value!!
