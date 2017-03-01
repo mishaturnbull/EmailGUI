@@ -98,7 +98,7 @@ SMTP_RESPONSE_CODES = {
 }
 
 MAX_RESP_LEN = max([len(SMTP_RESPONSE_CODES[i]) for i in
-                     SMTP_RESPONSE_CODES])
+                    SMTP_RESPONSE_CODES])
 
 
 # %% Parse arguments

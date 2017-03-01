@@ -3,20 +3,27 @@ A brief guide to using EmailGUI.py's GUI (Graphical User Interface).
 Text entry fields:
     # emails: default {AMOUNT}.  Specifies number of emails to send.
         Note that this is # emails PER OUTBOUND ACCOUNT, NOT TOTAL!
+
     Subject: default '{SUBJECT}'.  Specifies the subject line of
         the emails.
+
     From: default '{FROM}'.  Specifies your (the sender) email address.
         Multiple accounts are allowed, split with commas.
+
     Password: no default.  Specifies your email account password.
         Multiple passwords (for multiple accounts) are allowed, split with
         commas.
+
     To: default '{TO}'.  Specifies the recipient's email address.
         The 'Verify' button at the left-hand side of the text bar will
         attempt to determine whether or not the specified address is valid.**
+
     Server: default '{SERVER}'.  Specifies the server to use for SMTP.
         Multiple servers (for multiple accounts) are allowed, split with
         commas.
+
     Message text: default '{TEXT}'.  Specifies message content.
+
     Attachments: default '{ATTACH}'.  Specifies files to be attached.
                  The 'Browse' button at the left-hand side of the text
                  bar provides a file browser window for easy file selection.
@@ -43,6 +50,7 @@ Menus:
                                automatically set the multithreading mode so
                                that it is A. most likely to succeed and B.
                                faster.
+
     Client:
         Cleanup: Erase any temporary files written by the program.
         Exit: Run cleanup, then exit the program.  Provides the same
@@ -50,7 +58,10 @@ Menus:
         Exit without cleanup: Exit the program without cleaning up temp files.
         Write tempEmail.py: Write any necessary temporary files.
 
-    Help: display this help information.
+    Help:
+        Documentation: Display this help text.
+        SMTP Response code lookup: Given an SMTP response code, find out what it
+                                   means.
 
 Multithreading:
     This program is capable of using multiple threads (multithreading) to send
@@ -62,6 +73,14 @@ Multithreading:
                        amount of emails to send, and any left over are
                        sent from the parent thread*.
         Unlimited: Spawn a new thread for each email to be sent.
+
+Server options:
+    Max. Retries: How many times the program will try to recontact a server once
+                  the connection has been lost.  Only effective in when the
+                  multithreading mode is set to None.
+    Connect once: Connect to the server and send [x] number of emails.
+    Connect per send: Connect to the server and send 1 email [x] number of
+                      times.  
 
     *: this can sometimes mean that the total number of threads is 1 more than
        specified in [num], since there are [num] threads spawned as well as
