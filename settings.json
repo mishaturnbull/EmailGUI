@@ -25,5 +25,6 @@
     "confirmation_msg": [
         "Are you certain you wish to proceed?",
         "This cannot be undone and can have dangerous results!"
-    ]
+    ],
+    "width": 100
 }

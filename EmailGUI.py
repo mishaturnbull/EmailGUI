@@ -1101,7 +1101,7 @@ class EmailerGUI(EmailPrompt):
         # if the length of DEFAULTS['text'] is greather than 100, use 100 as the
         # limit of the window width.  prevents window being wider than the
         # screen on smaller screens (laptops)
-        width = min([len(DEFAULTS['text']), 100])
+        width = DEFAULTS["width"]
 
         # number to send
         self.label_amount = tk.Label(self.root, text='# emails: ')
