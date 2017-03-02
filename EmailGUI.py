@@ -883,6 +883,7 @@ class EmailerGUI(EmailPrompt):
         button_lookup.grid(row=3, column=0, sticky=tk.W)
 
     def handler_button_help(self):
+        """Display program documentation."""
         helper = tk.Toplevel(self.root)
         helper.title("Help")
         txt = scrolledtext.ScrolledText(helper)
