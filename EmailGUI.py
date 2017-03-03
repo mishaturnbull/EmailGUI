@@ -69,36 +69,13 @@ except FileNotFoundError as exc:
 # as an array of strings
 CONFIG['text'] = '\n'.join(CONFIG['text'])
 
-SMTP_RESPONSE_CODES = {
-    200: "Nonstandard success response",
-    211: "System status, or system help reply",
-    214: "Help message",
-    220: "<domain> Service ready",
-    221: "<domain> Service closing transmission channel",
-    250: "Requested mail action okay, completed",
-    251: "User not local; will forward to <forward-path>",
-    252: "Cannot VRFY user, but will accept message and attempt delivery",
-    354: "Start mail input; end with <CRLF>.<CRLF>",
-    421: "<doman> Service not available, closing transmission channel",
-    450: "Requested mail action not taken: mailbox unavailable",
-    451: "Requested action aborted: local error in processing",
-    452: "Requested action not taken: insufficient system storage",
-    500: "Syntax error, command unrecognized",
-    501: "Syntax error in parameters or arguments",
-    502: "Command not implemented",
-    503: "Bad sequence of commands",
-    504: "Command parameter not implemented",
-    521: "<domain> does not accept mail",
-    530: "Access denied",
-    550: "Requested action not taken: mailbox unavailable",
-    551: "User not local, please try <forward-path>",
-    552: "Request mail action aborted: exceeded storage allocation",
-    553: "Requested action not taken: mailbox name not allowed",
-    554: "Transaction failed",
-}
+# the SMTP response codes are indexed as strings due to JSON storage
+# requirements, so change those to integers
+for s in CONFIG['SMTP_resp_codes']:
+    CONFIG['SMTP_resp_codes'].update({int(s): CONFIG['SMTP_resp_codes'].pop(s)})
 
-MAX_RESP_LEN = max([len(SMTP_RESPONSE_CODES[i]) for i in
-                    SMTP_RESPONSE_CODES])
+MAX_RESP_LEN = max([len(CONFIG['SMTP_resp_codes'][i]) for i in
+                    CONFIG['SMTP_resp_codes']])
 
 
 # %% Parse arguments
@@ -254,20 +231,27 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 # knows his/her password, and wouldn't be very concerned about him/herself
 # seeing it plain.
 
-with open("MT_ULIM.template", 'r') as template:
-    MT_ULIM = template.read()
+try:
 
-with open("MT_LIM.template", 'r') as template:
-    MT_LIM = template.read()
+    with open("MT_ULIM.template", 'r') as template:
+        MT_ULIM = template.read()
 
-with open("GUI_DOC.template", 'r') as template:
-    GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
-                                     SUBJECT=CONFIG['subject'],
-                                     FROM=CONFIG['from'],
-                                     TO=CONFIG['to'],
-                                     SERVER=CONFIG['server'],
-                                     TEXT=CONFIG['text'],
-                                     ATTACH=CONFIG['attach'])
+    with open("MT_LIM.template", 'r') as template:
+        MT_LIM = template.read()
+
+    with open("GUI_DOC.template", 'r') as template:
+        GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
+                                         SUBJECT=CONFIG['subject'],
+                                         FROM=CONFIG['from'],
+                                         TO=CONFIG['to'],
+                                         SERVER=CONFIG['server'],
+                                         TEXT=CONFIG['text'],
+                                         ATTACH=CONFIG['attach'])
+
+except FileNotFoundError as exc:
+    sys.stderr.write("Couldn't find necessary template file" +
+                     " [{}]".format(exc.filename))
+    sys.exit(0)
 
 
 # %% Helper functions
@@ -505,7 +489,7 @@ class EmailSender(object):
             if 'localhost' in self['server']:
                 port = int(self['server'].split(':')[1])
                 subprocess.Popen(["python", "-m smtpd", "-n", "-c",
-                                  "CONFIG['debug']gingServer localhost:{}".format(port)])
+                                  "debuggingServer localhost:{}".format(port)])
                 server = smtplib.SMTP('localhost', port)
             else:
                 server = smtplib.SMTP(self['server'])
@@ -620,7 +604,7 @@ class EmailPrompt(object):
         '''Make Stuff Happen'''
         self.server = self.amount = self.frm = self.delay = None
         self.multithreading = self.subject = self.files = self.text = None
-        self._sender = self.rcpt = self.password = None
+        self._sender = self.rcpt = self.password = self.display_from = None
 
         if _autorun:
             self._run()
@@ -818,8 +802,8 @@ class EmailerGUI(EmailPrompt):
             self.files = []
 
         # Pylint yells about this.
-        # It doesn't like that we redefine CONFIG['max_retries'] inside something,
-        # and it doesn't see it being used in this method.
+        # It doesn't like that we redefine CONFIG['max_retries'] inside
+        # something, and it doesn't see it being used in this method.
         # It is right about both, so I didn't silence it, BUT:
         # Yeah, redefining names is bad but the value isn't changed by the
         # program, only the user.
@@ -842,8 +826,7 @@ class EmailerGUI(EmailPrompt):
         # we want the lists to have the same length as self.frm -- the user
         # could have 2 or more accounts with the same address and server
         # this way, we assume if less passwords and/or servers are given
-        # that we populate the rest of the lists with clones of the last given
-        # password/server.
+        # that we populate the rest of the lists with clones of the last element
         if len(self.server) < len(self.frm):
             self.server += [self.server[-1]] * (len(self.frm) -
                                                 len(self.server))
@@ -861,11 +844,11 @@ class EmailerGUI(EmailPrompt):
             '''Do the dirty work of setting the message to what it should
             be.'''
             retcode = int(entry_resp.get())
-            if retcode not in SMTP_RESPONSE_CODES:
+            if retcode not in CONFIG['SMTP_resp_codes']:
                 msg = "Sorry, I don't know that one!" + (" " * (MAX_RESP_LEN -
                                                                 29))
             else:
-                msg = SMTP_RESPONSE_CODES[retcode]
+                msg = CONFIG['SMTP_resp_codes'][retcode]
                 msg += (" " * (MAX_RESP_LEN - len(msg)))
             label_code.config(text=msg)
 

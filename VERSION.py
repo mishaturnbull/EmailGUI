@@ -1,6 +1,6 @@
 __major__ = '1'
 __minor__ = '1'
-__patch__ = '5'
+__patch__ = '6'
 __version__ = '.'.join([__major__, __minor__, __patch__])
 
 __author__ = 'Misha Turnbull'
@@ -16,7 +16,7 @@ __tested_on__ = {"windows 10": ['gui', 'prompt', 'commandline'],
                 }
 
 __date_started__ = "20160506"
-__date_last_edited__ = "20170301"
+__date_last_edited__ = "20170302"
 
 
 # This totally wasn't a school project...
