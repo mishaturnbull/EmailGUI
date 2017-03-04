@@ -708,6 +708,11 @@ class EmailPrompt(object):
 class EmailerGUI(EmailPrompt):
     '''Make things easier to use, and prettier.'''
 
+    colors = {"background": CONFIG['colors']['bg'],
+             }
+    buttons = {"background": CONFIG['colors']['buttons'],
+              }
+
     def __init__(self):
         '''Start the class, and make stuff happen.'''
         EmailPrompt.__init__(self, _autorun=False)
@@ -921,40 +926,46 @@ class EmailerGUI(EmailPrompt):
             self.entry_server.insert(0, entry_serv.get())
 
         vrfymen = tk.Toplevel(self.root)
+        vrfymen.config(**self.colors)
         vrfymen.wm_title("Verification")
-        label_from = tk.Label(vrfymen, text='Verify from:')
+        label_from = tk.Label(vrfymen, text='Verify from:', **self.colors)
         label_from.grid(row=0, column=0, sticky=tk.W)
         entry_from = tk.Entry(vrfymen, width=40)
         entry_from.grid(row=0, column=1, columnspan=2, sticky=tk.W)
         entry_from.insert(0, CONFIG['from'].split(',')[0])
-        label_password = tk.Label(vrfymen, text='Verify password:')
+        label_password = tk.Label(vrfymen, text='Verify password:',
+                                  **self.colors)
         label_password.grid(row=1, column=0, sticky=tk.W)
         entry_password = tk.Entry(vrfymen, width=40, show='*')
         entry_password.grid(row=1, column=1, columnspan=2, sticky=tk.W)
         entry_password.insert(0, self.entry_password.get())
-        label_to = tk.Label(vrfymen, text='To:')
+        label_to = tk.Label(vrfymen, text='To:', **self.colors)
         label_to.grid(row=2, column=0, sticky=tk.W)
         entry_to = tk.Entry(vrfymen, width=40)
         entry_to.grid(row=2, column=1, columnspan=2, sticky=tk.W)
         entry_to.insert(0, self.entry_to.get())
-        label_serv = tk.Label(vrfymen, text="Server:")
+        label_serv = tk.Label(vrfymen, text="Server:", **self.colors)
         label_serv.grid(row=3, column=0, sticky=tk.W)
         entry_serv = tk.Entry(vrfymen, width=40)
         entry_serv.grid(row=3, column=1, columnspan=2, sticky=tk.W)
         entry_serv.insert(0, self.entry_server.get())
-        button_VRFY = tk.Button(vrfymen, text="VRFY", command=VRFY)
+        button_VRFY = tk.Button(vrfymen, text="VRFY", command=VRFY,
+                                **self.buttons)
         button_VRFY.grid(row=4, column=0, sticky=tk.W)
-        label_VRFY_res = tk.Label(vrfymen, text="")
+        label_VRFY_res = tk.Label(vrfymen, text="", **self.colors)
         label_VRFY_res.grid(row=4, column=1, sticky=tk.W)
-        button_MAIL = tk.Button(vrfymen, text="MAIL", command=MAIL)
+        button_MAIL = tk.Button(vrfymen, text="MAIL", command=MAIL,
+                                **self.buttons)
         button_MAIL.grid(row=5, column=0, sticky=tk.W)
-        label_MAIL_res = tk.Label(vrfymen, text="")
+        label_MAIL_res = tk.Label(vrfymen, text="", **self.colors)
         label_MAIL_res.grid(row=5, column=1, sticky=tk.W)
         button_paste_addr = tk.Button(vrfymen, text="Paste address",
-                                      command=paste_addr)
+                                      command=paste_addr,
+                                      **self.buttons)
         button_paste_addr.grid(row=6, column=0, sticky=tk.W)
         button_paste_serv = tk.Button(vrfymen, text="Paste server",
-                                      command=paste_serv)
+                                      command=paste_serv,
+                                      **self.buttons)
         button_paste_serv.grid(row=6, column=1, sticky=tk.W)
 
     def init_gui(self):
@@ -964,11 +975,6 @@ class EmailerGUI(EmailPrompt):
         self.root.title(CONFIG['title'])
         self.root.config(background=CONFIG['colors']['bg'])
 
-        colors = {"background": CONFIG['colors']['bg'],
-                 }
-        buttons = {"background": CONFIG['colors']['buttons'],
-                  }
-
         # if the length of CONFIG['text'] is greather than 100, use 100 as the
         # limit of the window width.  prevents window being wider than the
         # screen on smaller screens (laptops)
@@ -976,7 +982,7 @@ class EmailerGUI(EmailPrompt):
 
         # number to send
         self.label_amount = tk.Label(self.root, text='# emails: ',
-                                     **colors)
+                                     **self.colors)
         self.label_amount.grid(row=1, column=0, sticky=tk.W)
         self.entry_amount = tk.Entry(self.root, width=5)
         self.entry_amount.grid(row=1, column=1, sticky=tk.W)
@@ -984,7 +990,7 @@ class EmailerGUI(EmailPrompt):
 
         # subject
         self.label_subject = tk.Label(self.root, text='Subject: ',
-                                      **colors)
+                                      **self.colors)
         self.label_subject.grid(row=2, column=0, sticky=tk.W)
         self.entry_subject = tk.Entry(self.root, width=width)
         self.entry_subject.grid(row=2, column=1, columnspan=9,
@@ -993,7 +999,7 @@ class EmailerGUI(EmailPrompt):
 
         # text
         self.label_text = tk.Label(self.root, text='Message text: ',
-                                   **colors)
+                                   **self.colors)
         self.label_text.grid(row=7, column=0, sticky=tk.W)
         self.entry_text = tk.Entry(self.root, width=width)
         self.entry_text.grid(row=7, column=1, columnspan=9, sticky=tk.W + tk.E)
@@ -1001,7 +1007,7 @@ class EmailerGUI(EmailPrompt):
 
         # from
         self.label_from = tk.Label(self.root, text='From | display as: ',
-                                   **colors)
+                                   **self.colors)
         self.label_from.grid(row=3, column=0, sticky=tk.W)
         self.entry_from = tk.Entry(self.root, width=int(width/3 * 2))
         self.entry_from.grid(row=3, column=1, columnspan=6, sticky=tk.W + tk.E)
@@ -1014,7 +1020,7 @@ class EmailerGUI(EmailPrompt):
 
         # from password
         self.label_password = tk.Label(self.root, text='Password: ',
-                                       **colors)
+                                       **self.colors)
         self.label_password.grid(row=4, column=0, sticky=tk.W)
         self.entry_password = tk.Entry(self.root, show='*',
                                        width=width)
@@ -1026,7 +1032,7 @@ class EmailerGUI(EmailPrompt):
 
         # to
         self.label_to = tk.Label(self.root, text='To: ',
-                                 **colors)
+                                 **self.colors)
         self.label_to.grid(row=5, column=0, sticky=tk.W)
         self.entry_to = tk.Entry(self.root, width=width)
         self.entry_to.grid(row=5, column=2, columnspan=8)
@@ -1035,12 +1041,12 @@ class EmailerGUI(EmailPrompt):
         # check email
         self.button_vrfy = tk.Button(self.root, text='Verify',
                                      command=self.verify_to,
-                                     **buttons)
+                                     **self.buttons)
         self.button_vrfy.grid(row=5, column=1)
 
         # server
         self.label_server = tk.Label(self.root, text='Server: ',
-                                     **colors)
+                                     **self.colors)
         self.label_server.grid(row=6, column=0, sticky=tk.W)
         self.entry_server = tk.Entry(self.root, width=width)
         self.entry_server.grid(row=6, column=1, columnspan=9,
@@ -1050,22 +1056,22 @@ class EmailerGUI(EmailPrompt):
         # multithreading
         self.multithread_label = tk.Label(self.root,
                                           text='Multithreading mode:',
-                                          **colors)
+                                          **self.colors)
         self.multithread_label.grid(row=9, column=0, sticky=tk.W)
         self.query_multithreading = tk.StringVar()
         self.query_multithreading.set(CONFIG['multithread'][0])
         self.mt_none = tk.Radiobutton(self.root, text='None',
                                       variable=self.query_multithreading,
                                       value='none',
-                                      **colors)
+                                      **self.colors)
         self.mt_lim = tk.Radiobutton(self.root, text='Limited: ',
                                      variable=self.query_multithreading,
                                      value='lim',
-                                     **colors)
+                                     **self.colors)
         self.mt_ulim = tk.Radiobutton(self.root, text='Unlimited',
                                       variable=self.query_multithreading,
                                       value='ulim',
-                                      **colors)
+                                      **self.colors)
         self.mt_none.grid(row=10, column=0, sticky=tk.W)
         self.mt_lim.grid(row=11, column=0, sticky=tk.W)
         self.mt_ulim.grid(row=12, column=0, sticky=tk.W)
@@ -1075,19 +1081,19 @@ class EmailerGUI(EmailPrompt):
 
         # file attachments
         self.file_label = tk.Label(self.root, text='Attachments: ',
-                                   **colors)
+                                   **self.colors)
         self.file_label.grid(row=8, column=0, sticky=tk.W)
         self.file_entry = tk.Entry(self.root, width=width)
         self.file_entry.grid(row=8, column=2, columnspan=8)
         self.file_entry.insert(0, CONFIG['attach'])
         # server options label
         self.opt_label1 = tk.Label(self.root, text='Server options:',
-                                   **colors)
+                                   **self.colors)
         self.opt_label1.grid(row=9, column=2, sticky=tk.W)
 
         # max server retry attempts
         self.label_retry = tk.Label(self.root, text='Max. Retries: ',
-                                    **colors)
+                                    **self.colors)
         self.label_retry.grid(row=10, column=2, sticky=tk.W)
         self.entry_retry = tk.Entry(self.root, width=3)
         self.entry_retry.insert(0, str(CONFIG['max_retries']))
@@ -1099,11 +1105,11 @@ class EmailerGUI(EmailPrompt):
         self.con_once = tk.Radiobutton(self.root, text='Connect once',
                                        variable=self.query_conmode,
                                        value=False,
-                                       **colors)
+                                       **self.colors)
         self.con_per = tk.Radiobutton(self.root, text='Connect per send',
                                       variable=self.query_conmode,
                                       value=True,
-                                      **colors)
+                                      **self.colors)
         self.con_once.grid(row=11, column=2, sticky=tk.W)
         self.con_per.grid(row=12, column=2, sticky=tk.W)
 
@@ -1119,7 +1125,7 @@ class EmailerGUI(EmailPrompt):
 
         self.button_filebrowse = tk.Button(self.root, text='Browse',
                                            command=browse_file,
-                                           **buttons)
+                                           **self.buttons)
         self.button_filebrowse.grid(row=8, column=1)
 
         # Options
