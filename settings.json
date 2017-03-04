@@ -53,5 +53,9 @@
         "552": "Request mail action aborted: exceeded storage allocation",
         "553": "Requested action not taken: mailbox name not allowed",
         "554": "Transaction failed"
+    },
+    "colors": {
+        "bg": "#C0C0C0",
+        "fg": "#81D4FF"
     }
 }
