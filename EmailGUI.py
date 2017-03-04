@@ -962,10 +962,11 @@ class EmailerGUI(EmailPrompt):
         # ws = int(self.root.winfo_screenwidth() / 2)
         # hs = int(self.root.winfo_screenheight() / 2)
         self.root.title(CONFIG['title'])
-        self.root.config(background=CONFIG['colors']['bg'],)
-                        # fg=CONFIG['colors']['buttons'])
+        self.root.config(background=CONFIG['colors']['bg'])
 
         colors = {"background": CONFIG['colors']['bg'],
+                 }
+        buttons = {"background": CONFIG['colors']['buttons'],
                   }
 
         # if the length of CONFIG['text'] is greather than 100, use 100 as the
@@ -1033,7 +1034,8 @@ class EmailerGUI(EmailPrompt):
 
         # check email
         self.button_vrfy = tk.Button(self.root, text='Verify',
-                                     command=self.verify_to)
+                                     command=self.verify_to,
+                                     **buttons)
         self.button_vrfy.grid(row=5, column=1)
 
         # server
@@ -1054,13 +1056,16 @@ class EmailerGUI(EmailPrompt):
         self.query_multithreading.set(CONFIG['multithread'][0])
         self.mt_none = tk.Radiobutton(self.root, text='None',
                                       variable=self.query_multithreading,
-                                      value='none')
+                                      value='none',
+                                      **colors)
         self.mt_lim = tk.Radiobutton(self.root, text='Limited: ',
                                      variable=self.query_multithreading,
-                                     value='lim')
+                                     value='lim',
+                                     **colors)
         self.mt_ulim = tk.Radiobutton(self.root, text='Unlimited',
                                       variable=self.query_multithreading,
-                                      value='ulim')
+                                      value='ulim',
+                                      **colors)
         self.mt_none.grid(row=10, column=0, sticky=tk.W)
         self.mt_lim.grid(row=11, column=0, sticky=tk.W)
         self.mt_ulim.grid(row=12, column=0, sticky=tk.W)
@@ -1093,10 +1098,12 @@ class EmailerGUI(EmailPrompt):
         self.query_conmode.set(False)
         self.con_once = tk.Radiobutton(self.root, text='Connect once',
                                        variable=self.query_conmode,
-                                       value=False)
+                                       value=False,
+                                       **colors)
         self.con_per = tk.Radiobutton(self.root, text='Connect per send',
                                       variable=self.query_conmode,
-                                      value=True)
+                                      value=True,
+                                      **colors)
         self.con_once.grid(row=11, column=2, sticky=tk.W)
         self.con_per.grid(row=12, column=2, sticky=tk.W)
 
@@ -1111,7 +1118,8 @@ class EmailerGUI(EmailPrompt):
                 self.file_entry.insert(0, filename)
 
         self.button_filebrowse = tk.Button(self.root, text='Browse',
-                                           command=browse_file)
+                                           command=browse_file,
+                                           **buttons)
         self.button_filebrowse.grid(row=8, column=1)
 
         # Options

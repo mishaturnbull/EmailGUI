@@ -56,6 +56,6 @@
     },
     "colors": {
         "bg": "#C0C0C0",
-        "fg": "#81D4FF"
+        "buttons": "#81D4FF"
     }
 }
