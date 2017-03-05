@@ -711,6 +711,7 @@ class EmailerGUI(EmailPrompt):
     colors = {"background": CONFIG['colors']['bg'],
              }
     buttons = {"background": CONFIG['colors']['buttons'],
+               "activebackground": CONFIG['colors']['bg'],
               }
 
     def __init__(self):
@@ -859,15 +860,17 @@ class EmailerGUI(EmailPrompt):
 
         retmen = tk.Toplevel(self.root)
         retmen.wm_title("Response codes")
-        label_resp = tk.Label(retmen, text="Response code: ")
+        retmen.config(**self.colors)
+        label_resp = tk.Label(retmen, text="Response code: ", **self.colors)
         label_resp.grid(row=0, column=0, sticky=tk.W)
         entry_resp = tk.Entry(retmen, width=4)
         entry_resp.grid(row=0, column=1, sticky=tk.W)
-        label_err = tk.Label(retmen, text="Error: ")
+        label_err = tk.Label(retmen, text="Error: ", **self.colors)
         label_err.grid(row=1, column=0, sticky=tk.W)
-        label_code = tk.Label(retmen, text=(' ' * 62))
+        label_code = tk.Label(retmen, text=(' ' * 62), **self.colors)
         label_code.grid(row=1, column=1, sticky=tk.W)
-        button_lookup = tk.Button(retmen, text='Look up', command=lookup_code)
+        button_lookup = tk.Button(retmen, text='Look up', command=lookup_code,
+                                  **self.buttons)
         button_lookup.grid(row=3, column=0, sticky=tk.W)
 
     def handler_button_help(self):
