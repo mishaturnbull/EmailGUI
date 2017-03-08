@@ -1,2 +1,3 @@
 *.out
 tempEmail.py
+__pycache__/
