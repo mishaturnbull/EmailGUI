@@ -1,3 +1,4 @@
 *.out
 tempEmail.py
 __pycache__/
+.spyproject/
