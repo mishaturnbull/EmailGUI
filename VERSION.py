@@ -16,7 +16,7 @@ __tested_on__ = {"windows 10": ['gui', 'prompt', 'commandline'],
                 }
 
 __date_started__ = "20160506"
-__date_last_edited__ = "20170302"
+__date_last_edited__ = "20180911"
 
 
 # This totally wasn't a school project...

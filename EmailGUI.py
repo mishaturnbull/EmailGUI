@@ -45,6 +45,7 @@ import smtplib
 import subprocess
 import os
 import json
+import threading
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -324,6 +325,7 @@ will we return 180.
         # anti-spam
         return ('none', 180, True)
 
+
 CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
 
 
@@ -483,22 +485,36 @@ class EmailSender(object):
         '''Send `nsend` emails.'''
 
         CONFIG['con_per'] = self['multithreading'][2]
+        
+        #print(CONFIG)
 
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
-            if 'localhost' in self['server']:
-                port = int(self['server'].split(':')[1])
-                subprocess.Popen(["python", "-m smtpd", "-n", "-c",
-                                  "debuggingServer localhost:{}".format(port)])
-                server = smtplib.SMTP('localhost', port)
-            else:
+            
+            print("Starting connect")
+            
+            port = int(self['server'].split(':')[1])
+            
+            if 'localhost' in self['server'] or \
+                '127.0.0.1' in self['server']:
+                # for local servers,
+                # we assume Mercury.  Mercury has no TLS or authentication.
+                # as such, it requires special handling (its own if-block)
+                # This is fuckin' weird and bad, but hey, it works well.
+                
                 server = smtplib.SMTP(self['server'])
+                server.ehlo()
+            
+            else:
+                server.ehlo_or_helo_if_needed()
+                server.starttls()
+                server.ehlo()
+                server.login(self['From'], self['password'])
+            
+            print("Handshake complete!")
+            
             if CONFIG['debug']:
                 server.set_debuglevel(1)
-            server.ehlo_or_helo_if_needed()
-            server.starttls()
-            server.ehlo()
-            server.login(self['From'], self['password'])
 
             return server
 
