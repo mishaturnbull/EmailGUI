@@ -374,6 +374,7 @@ class EmailSendHandler(threading.Thread):
         self._check_config()
 
         self.do_abort = False
+        self.is_done = False
 
         self._threads = []
 
@@ -429,6 +430,23 @@ class EmailSendHandler(threading.Thread):
         for _ in range(n_threads):
             thread = EmailSender(**fake_options)
             self._threads.append(thread)
+            
+    def run(self):
+        
+        self.generate_send_threads()
+        self.start_threads()
+        
+        # continously monitor for all threads to be done, then mark self as done
+        
+        while not self.is_done:
+            
+            for thread in self._threads:
+                if thread.is_done:
+                    thread.join()
+                    self._threads.remove(thread)
+            
+            if len(self._threads) == 0:
+                self.is_done = True
 
     def start_threads(self):
         '''Just do it!'''
@@ -450,15 +468,7 @@ class EmailSendHandler(threading.Thread):
 
         # I guess that'll have to do... not like we can suddenly switch the
         # system over to an airgapped network.  I can dream.
-
-    def join(self, timeout=None):
-        '''Try not to use this.  Use .abort() instead.'''
-
-        # TODO: make sure this does what I want it to do...
-        for thread in self._threads:
-            thread.join(timeout=timeout)
-
-        super(EmailSendHandler, self).join(timeout)
+            
 
 
 class EmailSender(threading.Thread):
@@ -468,6 +478,7 @@ class EmailSender(threading.Thread):
         self._options = kwargs
 
         self.do_abort = False
+        self.is_done = False
         
         super(EmailSender, self).__init__()
 
@@ -666,6 +677,8 @@ class EmailSender(threading.Thread):
                                                                mime_msg))
 
         self._launch(self['amount'], delay=self['delay'])
+        
+        self.is_done = True
 
 
     # TODO: ensure this is not referred to anywhere, and delete!
@@ -729,17 +742,17 @@ class EmailPrompt(object):
     def _make_sender(self, i=0):
         '''Create the EmailSender object for this email.'''
         print("EmailPrompt._make_sender: i = " + str(i))
-        self._sender = EmailSender(server=self.server[i],
-                                   From=self.frm[i],
-                                   to=self.rcpt,
-                                   message=self.text,
-                                   subject=self.subject,
-                                   multithreading=self.multithreading,
-                                   attach=self.files,
-                                   password=self.password[i],
-                                   amount=self.amount,
-                                   delay=self.delay,
-                                   display_from=self.display_from)
+        self._sender = EmailSendHandler(server=self.server[i],
+                                        From=self.frm[i],
+                                        to=self.rcpt,
+                                        message=self.text,
+                                        subject=self.subject,
+                                        multithreading=self.multithreading,
+                                        attach=self.files,
+                                        password=self.password[i],
+                                        amount=self.amount,
+                                        delay=self.delay,
+                                        display_from=self.display_from)
 
     def send_msg(self):
         '''FIRE THE CANNONS!'''
@@ -749,7 +762,7 @@ class EmailPrompt(object):
                                                                self.amount))
         for i in BEST_RANGE(len(self.frm)):
             self._make_sender(i)
-            self._sender.send()
+            self._sender.start()
 
     def make_tempfile(self):
         '''If necessary, use the EmailSender class to write a temporary
