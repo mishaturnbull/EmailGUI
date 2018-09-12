@@ -362,13 +362,15 @@ def verify_to_email(address, serv, frm, pwd):
     return resp
 
 
-# %% class for sending emails
-class EmailSender(object):
+# %% threaded class for sending emails
+class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
 
     def __init__(self, **kwargs):
         self._options = kwargs
         self._check_config()
+        
+        self.do_abort = False
 
     ###################################
     # allow user to be lazy, and get things like EmailSender(...)['to']
@@ -395,37 +397,44 @@ class EmailSender(object):
     def build_message(self):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
+        
+        # forge return headers
         msg.add_header('reply-to', self['display_from'])
         msg['From'] = "\"" + self['display_from'] + "\" <" + \
                       self['display_from'] + ">"
         msg.add_header('X-Google-Original-From',
                        '"{df}" <{df}>'.format(df=self['display_from']))
+        
+        # multiple recipients
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
         else:
             msg['To'] = self['to']
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = self['subject']
-        mt_mode = self['multithreading'][0]
-
-        # conditionally append message numbering info based on multithreading
-        # mode.  kinda ugly, but makes better output
-        if mt_mode == 'none':
-            # no multithreading - just use a counter
-            part2 = '\n\nEmail {num} of ' + str(self['amount'])
-            msg.attach(MIMEText(self['message'] + part2))
-
-        elif mt_mode == 'lim':
-            # limited multithreading - number the messages from each thread
-            n_mail = str(int(self['amount']) // self['multithreading'][1])
-            part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
-                                                      '({ident})')
-            msg.attach(MIMEText(self['message'] + part2))
-
-        elif mt_mode == 'ulim':
-            # unlimited multithreading - number the threads
-            part2 = '\n\nEmail from {ident} on ulim'
-            msg.attach(MIMEText(self['message'] + part2))
+        
+        # if debugging, append some useful info to the bottom of the emails
+        if CONFIG['debug']:
+            mt_mode = self['multithreading'][0]
+    
+            # conditionally append message numbering info based on
+            # multithreading mode.  kinda ugly, but makes better output
+            if mt_mode == 'none':
+                # no multithreading - just use a counter
+                part2 = '\n\nEmail {num} of ' + str(self['amount'])
+                msg.attach(MIMEText(self['message'] + part2))
+    
+            elif mt_mode == 'lim':
+                # limited multithreading - number the messages from each thread
+                n_mail = str(int(self['amount']) // self['multithreading'][1])
+                part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
+                                                          '({ident})')
+                msg.attach(MIMEText(self['message'] + part2))
+    
+            elif mt_mode == 'ulim':
+                # unlimited multithreading - number the threads
+                part2 = '\n\nEmail from {ident} on ulim'
+                msg.attach(MIMEText(self['message'] + part2))
 
         # attachments
         for filename in self['attach']:
@@ -491,12 +500,8 @@ class EmailSender(object):
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
             
-            print("Starting connect")
-            
-            port = int(self['server'].split(':')[1])
-            
             if 'localhost' in self['server'] or \
-                '127.0.0.1' in self['server']:
+               '127.0.0.1' in self['server']:
                 # for local servers,
                 # we assume Mercury.  Mercury has no TLS or authentication.
                 # as such, it requires special handling (its own if-block)
@@ -511,8 +516,6 @@ class EmailSender(object):
                 server.ehlo()
                 server.login(self['From'], self['password'])
             
-            print("Handshake complete!")
-            
             if CONFIG['debug']:
                 server.set_debuglevel(1)
 
@@ -526,27 +529,22 @@ class EmailSender(object):
         # rest of the emails to be sent.
         try:
             mime = self['MIMEMessage'].as_string()
+            for _ in BEST_RANGE(nsend):
+                
+                # important! check for a thread exit flag and abort if needed
+                if self.do_abort:
+                    raise Exception("Aborting!")
+                    # hackish way to jump straight to the finally clause
+                    # that closes the connection and exits.
+                
+                if CONFIG['debug']:
+                    print('Launching {} at ' .format(_) + str(time.time()))
 
-            # this annoying if has to be here to make sure the email counter
-            # works properly on m.t. modes none and lim.  on ulim, there is no
-            # counter per say.
-            if self['multithreading'][0] == 'none':
-                for _ in BEST_RANGE(nsend):
-                    if CONFIG['debug']:
-                        print('Launching {} at ' .format(_) + str(time.time()))
-
-                    if CONFIG['con_per']:
-                        server = connect()
-                    server.sendmail(self['From'], self['to'],
-                                    mime.format(num=_ + 1))
-                    time.sleep(int(delay))
-            elif self['multithreading'][0] == 'lim':
-                for _ in BEST_RANGE(nsend):
-                    if CONFIG['debug']:
-                        print('Launching {} at '.format(_) + str(time.time()))
-                    if CONFIG['con_per']:
-                        server = connect()
-                    server.sendmail(self['From'], self['to'], mime)
+                if CONFIG['con_per']:
+                    server = connect()
+                server.sendmail(self['From'], self['to'],
+                                mime.format(num=_ + 1))
+                time.sleep(int(delay))
 
         except smtplib.SMTPServerDisconnected:
             # first, stop trying to connect to a dead server
@@ -566,7 +564,20 @@ class EmailSender(object):
         finally:
             # everything died.  just give up.
             server.quit()
+            
+    def run(self):
+        self._check_config()
+        self.build_message()
+        
+        if CONFIG['debug']:
+            mime_msg = self['MIMEMessage'].as_string()
+            print("Launching {} copies of message:\n{}".format(self['amount'],
+                  mime_msg))
+        
+        self._launch(self['amount'], delay=self['delay'])
 
+
+    # TODO: ensure this is not referred to anywhere, and delete!
     def send(self):
         '''FIRE THE CANNONS!'''
         # make sure everything is ready
