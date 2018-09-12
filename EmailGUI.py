@@ -46,6 +46,7 @@ import subprocess
 import os
 import json
 import threading
+import copy
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -264,11 +265,13 @@ fail.
 
 Prioritizes likeliehood of success over speed.
 
-Returns a tuple (mt_mode, mt_num):
+Returns a tuple (mt_mode, mt_num, con_per):
     :str: mt_mode := one of ['none', 'lim', 'ulim']
     :int: mt_num := if mt_mode == 'none': one of [0, 180]
                     if mt_mode == 'lim': in range(1, 16)
                     if mt_mode == 'ulim': 0
+    :bool: con_per := whether or not a connection should be established
+                      for each email
 
 Note that in the case mt_mode == 'none', mt_num actually does not indicate
 the number of threads to use, but rather a delay factor for intentionally
@@ -361,16 +364,18 @@ def verify_to_email(address, serv, frm, pwd):
     server.quit()
     return resp
 
-
-# %% threaded class for sending emails
-class EmailSender(threading.Thread):
-    '''Class to do the dirty work of sending emails.'''
+# %% multithreading!
+class EmailSendHandler(threading.Thread):
+    '''Handle a group of EmailSender classes.'''
 
     def __init__(self, **kwargs):
+        super(EmailSendHandler, self).__init__()
         self._options = kwargs
         self._check_config()
-        
+
         self.do_abort = False
+
+        self._threads = []
 
     ###################################
     # allow user to be lazy, and get things like EmailSender(...)['to']
@@ -392,19 +397,106 @@ class EmailSender(threading.Thread):
         necessary = ['From', 'to', 'subject', 'multithreading', 'password',
                      'amount', 'message', 'server']
         for attr in necessary:
-            assert attr in self._options, 'EmailSender() missing ' + attr
+            assert attr in self._options, 'EmailSendHandler() missing ' + attr
+
+    def generate_send_threads(self):
+        '''Make a list of threads containing the threads to be run in their
+        necessary configuration.'''
+        mt_mode = self['multithreading'][0]
+
+        # easiest case first.  If using unlimited threading mode, then simply
+        # spawn <amount of emails> threads that send 1 email each.
+        if mt_mode == 'ulim':
+            n_threads = self['amount']
+            n_emails_per_thread = 1
+
+        # if we're on limited mode, then we need to spawn n amount of threads
+        # with a certain amount of emails each.
+        elif mt_mode == 'lim':
+            n_threads = self['multithreading'][1]
+            n_emails_per_thread = self['amount'] // n_threads
+
+        # no multithreading.  1 thread, all the emails.
+        elif mt_mode == 'none':
+            n_threads = 1
+            n_emails_per_thread = self['amount']
+
+        # now, generate the fake options and feed them down to the worker
+        # threads
+        fake_options = copy.deepcopy(self._options)
+        fake_options['amount'] = n_emails_per_thread
+
+        for _ in range(n_threads):
+            thread = EmailSender(**fake_options)
+            self._threads.append(thread)
+
+    def start_threads(self):
+        '''Just do it!'''
+
+        # straightforward.  go through the list self._threads and .start()
+        # them all.
+
+        for thread in self._threads:
+            thread.start()
+
+    def abort(self):
+        '''Attempt to halt the sending of more emails.'''
+        # Oh, fuck.  This is gonna be tough.
+
+        self.do_abort = True
+
+        for thread in self._threads:
+            thread.do_abort = True
+
+        # I guess that'll have to do... not like we can suddenly switch the
+        # system over to an airgapped network.  I can dream.
+
+    def join(self, timeout=None):
+        '''Try not to use this.  Use .abort() instead.'''
+
+        # TODO: make sure this does what I want it to do...
+        for thread in self._threads:
+            thread.join(timeout=timeout)
+
+        super(EmailSendHandler, self).join(timeout)
+
+
+class EmailSender(threading.Thread):
+    '''Class to do the dirty work of sending emails.'''
+
+    def __init__(self, **kwargs):
+        self._options = kwargs
+
+        self.do_abort = False
+        
+        super(EmailSender, self).__init__()
+
+    ###################################
+    # allow user to be lazy, and get things like EmailSender(...)['to']
+    # also keeps number of attributes down to one -- internal dictionary
+    # called self._options
+    def __setitem__(self, key, value):
+        self._options[key] = value
+
+    def __contains__(self, key):
+        return key in self._options
+
+    def __getitem__(self, key):
+        return self._options[key]
+    # end lazy-user-ability
+    ##################################
 
     def build_message(self):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
-        
+
         # forge return headers
         msg.add_header('reply-to', self['display_from'])
         msg['From'] = "\"" + self['display_from'] + "\" <" + \
                       self['display_from'] + ">"
         msg.add_header('X-Google-Original-From',
                        '"{df}" <{df}>'.format(df=self['display_from']))
-        
+
         # multiple recipients
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
@@ -412,25 +504,25 @@ class EmailSender(threading.Thread):
             msg['To'] = self['to']
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = self['subject']
-        
+
         # if debugging, append some useful info to the bottom of the emails
         if CONFIG['debug']:
             mt_mode = self['multithreading'][0]
-    
+
             # conditionally append message numbering info based on
             # multithreading mode.  kinda ugly, but makes better output
             if mt_mode == 'none':
                 # no multithreading - just use a counter
                 part2 = '\n\nEmail {num} of ' + str(self['amount'])
                 msg.attach(MIMEText(self['message'] + part2))
-    
+
             elif mt_mode == 'lim':
                 # limited multithreading - number the messages from each thread
                 n_mail = str(int(self['amount']) // self['multithreading'][1])
                 part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
                                                           '({ident})')
                 msg.attach(MIMEText(self['message'] + part2))
-    
+
             elif mt_mode == 'ulim':
                 # unlimited multithreading - number the threads
                 part2 = '\n\nEmail from {ident} on ulim'
@@ -494,28 +586,28 @@ class EmailSender(threading.Thread):
         '''Send `nsend` emails.'''
 
         CONFIG['con_per'] = self['multithreading'][2]
-        
+
         #print(CONFIG)
 
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
-            
+
             if 'localhost' in self['server'] or \
                '127.0.0.1' in self['server']:
                 # for local servers,
                 # we assume Mercury.  Mercury has no TLS or authentication.
                 # as such, it requires special handling (its own if-block)
                 # This is fuckin' weird and bad, but hey, it works well.
-                
+
                 server = smtplib.SMTP(self['server'])
                 server.ehlo()
-            
+
             else:
                 server.ehlo_or_helo_if_needed()
                 server.starttls()
                 server.ehlo()
                 server.login(self['From'], self['password'])
-            
+
             if CONFIG['debug']:
                 server.set_debuglevel(1)
 
@@ -530,13 +622,13 @@ class EmailSender(threading.Thread):
         try:
             mime = self['MIMEMessage'].as_string()
             for _ in BEST_RANGE(nsend):
-                
+
                 # important! check for a thread exit flag and abort if needed
                 if self.do_abort:
                     raise Exception("Aborting!")
                     # hackish way to jump straight to the finally clause
                     # that closes the connection and exits.
-                
+
                 if CONFIG['debug']:
                     print('Launching {} at ' .format(_) + str(time.time()))
 
@@ -564,16 +656,15 @@ class EmailSender(threading.Thread):
         finally:
             # everything died.  just give up.
             server.quit()
-            
+
     def run(self):
-        self._check_config()
         self.build_message()
-        
+
         if CONFIG['debug']:
             mime_msg = self['MIMEMessage'].as_string()
             print("Launching {} copies of message:\n{}".format(self['amount'],
-                  mime_msg))
-        
+                                                               mime_msg))
+
         self._launch(self['amount'], delay=self['delay'])
 
 
@@ -581,7 +672,6 @@ class EmailSender(threading.Thread):
     def send(self):
         '''FIRE THE CANNONS!'''
         # make sure everything is ready
-        self._check_config()
         self.build_message()
         if CONFIG['debug']:
             mime = self['MIMEMessage'].as_string()
