@@ -235,12 +235,6 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 
 try:
 
-    with open("MT_ULIM.template", 'r') as template:
-        MT_ULIM = template.read()
-
-    with open("MT_LIM.template", 'r') as template:
-        MT_LIM = template.read()
-
     with open("GUI_DOC.template", 'r') as template:
         GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
                                          SUBJECT=CONFIG['subject'],
