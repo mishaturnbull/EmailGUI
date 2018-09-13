@@ -27,7 +27,6 @@ from __future__ import (division, print_function, generators, absolute_import)
 
 # [DONE] TODO: nogui mode
 # [DONE] TODO: delay factor in autoselect multithreading
-# TODO: make help window scroll
 # [DONE] TODO: allow multiple accounts to be used as senders
 # TODO: custom SMTP server?
 # TODO: command-line implementation (wip)
@@ -195,6 +194,7 @@ class FakeSTDOUT(object):
         '''Close the log files.'''
         self.log.close()
 
+
 sys.stdout = FakeSTDOUT(sys.stdout, CONFIG['log_stdout'])
 sys.stderr = FakeSTDOUT(sys.stderr, CONFIG['log_stderr'])
 
@@ -203,9 +203,11 @@ class EmailSendError(Exception):
     '''Exception class for exceptions raised within EmailGUI.'''
     pass
 
+
 class EmergencyStop(Exception):
     '''Specifically to be raised when the abort button is pressed.'''
     pass
+
 
 # these are the error classes that should raise a popup box presented to the
 # user.  others either should never happen or should be silenced and handled
@@ -852,7 +854,8 @@ class EmailerGUI(EmailPrompt):
            popup saying why.'''
 
         # ask for confirmation
-        if messagebox.askyesno(CONFIG['title'], CONFIG['confirmation_msg']):
+        if messagebox.askyesno(CONFIG['title'],
+                               ' '.join(CONFIG['confirmation_msg'])):
             try:
                 self.create_msg_config()
                 # dear reader, you might be inclined to expect something like:
