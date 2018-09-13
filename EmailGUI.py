@@ -310,8 +310,8 @@ will we return 180.
             # client: "I want to send 3.3 emails to Joe!"
             # server: "Wut"
             #
-            # To avoid this, use 14 threads and send the remainder in the
-            # parent (this one)
+            # To avoid this, use 14 threads with the same amount and send
+            # the remainder in a 15th
             return ('lim', 14, False)
     elif num_emails == 500:
         # send 500 emails, but send them in one shot -- often easier, as noted
@@ -406,6 +406,23 @@ class EmailSendHandler(threading.Thread):
         for attr in necessary:
             assert attr in self._options, 'EmailSendHandler() missing ' + attr
 
+    def _final_check(self):
+        '''Make sure everything is right in one final last-minute data
+        validation check.
+
+        At the time this method is called, it assumes that
+        .generate_send_threads() has already been called and generated
+        the worker threads.'''
+
+        total_emails = 0
+        for sender in self._threads:
+            total_emails += sender["amount"]
+            sender._check_config()
+
+        if total_emails != self["amount"]:
+            raise EmergencyStop("Number of emails about to be sent does "
+                                "not match number of emails requested!")
+
     def generate_send_threads(self):
         '''Make a list of threads containing the threads to be run in their
         necessary configuration.'''
@@ -437,12 +454,24 @@ class EmailSendHandler(threading.Thread):
             thread = EmailSender(self, **fake_options)
             self._threads.append(thread)
 
+        # double check here that we're sending the correct number
+        # of emails per issue #3.
+        if (mt_mode == "lim") and \
+           (n_threads * n_emails_per_thread != self['amount']):
+            n_leftover = self['amount'] - (n_threads * n_emails_per_thread)
+            ffake_options = copy.deepcopy(self._options)
+            ffake_options['amount'] = n_leftover
+            thread = EmailSender(self, **ffake_options)
+            self._threads.append(thread)
+
     def run(self):
 
         self.generate_send_threads()
+        self._final_check()
         self.start_threads()
 
-        # continously monitor for all threads to be done, then mark self as done
+        # continously monitor for all threads to be done, then mark
+        # self as done
 
         while not self.is_done:
 
@@ -471,7 +500,7 @@ class EmailSendHandler(threading.Thread):
 
         for thread in self._threads:
             thread.do_abort = True
-        
+
         # force the abort button into reset mode by faking being done sending
         # (which, we are, but not because all emails have been sent)
         self.is_done = True
@@ -654,7 +683,7 @@ class EmailSender(threading.Thread):
                 # tried too many times, give up and make it the user's
                 # problem
                 raise
-        
+
         except EmergencyStop:
             # if we're connecting per email, then there will be no active
             # connection to close and as such we don't need to do anything
