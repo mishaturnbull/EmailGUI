@@ -203,6 +203,10 @@ class EmailSendError(Exception):
     '''Exception class for exceptions raised within EmailGUI.'''
     pass
 
+class EmergencyStop(Exception):
+    '''Specifically to be raised when the abort button is pressed.'''
+    pass
+
 # these are the error classes that should raise a popup box presented to the
 # user.  others either should never happen or should be silenced and handled
 # internally.
@@ -467,6 +471,12 @@ class EmailSendHandler(threading.Thread):
 
         for thread in self._threads:
             thread.do_abort = True
+        
+        # force the abort button into reset mode by faking being done sending
+        # (which, we are, but not because all emails have been sent)
+        self.is_done = True
+        self.n_sent -= 1
+        self.sent_another_one()
 
         # I guess that'll have to do... not like we can suddenly switch the
         # system over to an airgapped network.  I can dream.
@@ -482,7 +492,7 @@ class EmailSendHandler(threading.Thread):
 
         # if we're done, and have a handler...
         # change abort button to reset and switch the handler functions
-        if self.n_sent >= self["amount"]:
+        if self.n_sent >= self["amount"] or self.is_done:
             self.is_done = True
 
             if self._handler is not None:
@@ -616,7 +626,7 @@ class EmailSender(threading.Thread):
 
                 # important! check for a thread exit flag and abort if needed
                 if self.do_abort:
-                    raise Exception("Aborting!")
+                    raise EmergencyStop("Aborting!")
                     # hackish way to jump straight to the finally clause
                     # that closes the connection and exits.
 
@@ -644,6 +654,15 @@ class EmailSender(threading.Thread):
                 # tried too many times, give up and make it the user's
                 # problem
                 raise
+        
+        except EmergencyStop:
+            # if we're connecting per email, then there will be no active
+            # connection to close and as such we don't need to do anything
+            if CONFIG['con_per']:
+                pass
+            else:
+                server.quit()
+            return
 
         finally:
             # everything died.  just give up.
