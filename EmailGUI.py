@@ -477,6 +477,8 @@ class EmailSendHandler(threading.Thread):
         
         if self._handler is not None:
             self._handler.progress_bar["value"] = self.n_sent
+            self._handler.progress_label.config(text="Sent: {} / {}".format(
+                    str(self.n_sent), str(self["amount"])))
 
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
@@ -706,6 +708,8 @@ class EmailPrompt(object):
         self.server = self.amount = self.frm = self.delay = None
         self.multithreading = self.subject = self.files = self.text = None
         self._sender = self.rcpt = self.password = self.display_from = None
+        
+        self._all_senders = []
 
         if _autorun:
             self._run()
@@ -725,6 +729,7 @@ class EmailPrompt(object):
                                         amount=self.amount,
                                         delay=self.delay,
                                         display_from=self.display_from)
+        self._all_senders.append(self._sender)
 
     def send_msg(self, bar_update_handle=None):
         '''FIRE THE CANNONS!'''
@@ -853,6 +858,14 @@ class EmailerGUI(EmailPrompt):
             except smtplib.SMTPException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.args[0])
+    
+    def handler_button_abort(self):
+        '''Do our best job at stopping the sending of further emails.'''
+        
+        
+        
+        for sender in self._all_senders:
+            sender.abort()
 
     def handler_automt(self):
         '''Handle the 'Auto-select Threading' button.
@@ -1151,8 +1164,14 @@ class EmailerGUI(EmailPrompt):
                                        **self.colors)
         self.progress_label.grid(row=9, column=0, sticky=tk.W)
         self.progress_bar = ttk.Progressbar(self.root, orient='horizontal',
-                                            length=700, mode='determinate')
-        self.progress_bar.grid(row=9, column=1, columnspan=9)
+                                            length=600, mode='determinate')
+        self.progress_bar.grid(row=9, column=2, columnspan=8)
+        
+        # abort button
+        self.button_abort = tk.Button(self.root, text="Abort",
+                                      command=self.handler_button_abort,
+                                      **self.buttons)
+        self.button_abort.grid(row=9, column=2)
 
         # multithreading
         self.multithread_label = tk.Label(self.root,
