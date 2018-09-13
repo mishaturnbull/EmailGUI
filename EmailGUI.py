@@ -366,16 +366,16 @@ class EmailSendHandler(threading.Thread):
     def __init__(self, bar_update_handle, **kwargs):
         super(EmailSendHandler, self).__init__()
         self._handler = bar_update_handle
-        
+
         self._options = kwargs
         self._check_config()
-        
+
         if self._handler is not None:
             self._handler.progress_bar["maximum"] = self["amount"]
 
         self.do_abort = False
         self.is_done = False
-        
+
         self.n_sent = 0
 
         self._threads = []
@@ -474,23 +474,31 @@ class EmailSendHandler(threading.Thread):
     def sent_another_one(self):
         '''Call this exactly once per email sent.  For updating progress bar.'''
         self.n_sent += 1
-        
+
         if self._handler is not None:
             self._handler.progress_bar["value"] = self.n_sent
             self._handler.progress_label.config(text="Sent: {} / {}".format(
-                    str(self.n_sent), str(self["amount"])))
+                str(self.n_sent), str(self["amount"])))
+
+        # if we're done, and have a handler...
+        # change abort button to reset and switch the handler functions
+        if self.n_sent >= self["amount"]:
+            self.is_done = True
+
+            if self._handler is not None:
+                self._handler.button_abort["text"] = "Reset"
 
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
 
     def __init__(self, handler, **kwargs):
         self._handler = handler
-        
+
         self._options = kwargs
 
         self.do_abort = False
         self.is_done = False
-        
+
         self.n_sent = 0
 
         super(EmailSender, self).__init__()
@@ -708,7 +716,7 @@ class EmailPrompt(object):
         self.server = self.amount = self.frm = self.delay = None
         self.multithreading = self.subject = self.files = self.text = None
         self._sender = self.rcpt = self.password = self.display_from = None
-        
+
         self._all_senders = []
 
         if _autorun:
@@ -858,14 +866,25 @@ class EmailerGUI(EmailPrompt):
             except smtplib.SMTPException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.args[0])
-    
+
     def handler_button_abort(self):
         '''Do our best job at stopping the sending of further emails.'''
-        
-        
-        
-        for sender in self._all_senders:
-            sender.abort()
+
+        # reset mode
+        if self._sender.is_done:
+            self.progress_bar["value"] = 0
+            self.progress_label.config(text="Sent: 0 / 0")
+
+            self._all_senders = []
+            self._sender = None
+
+            # switch back to abort
+            self.button_abort["text"] = "Abort"
+
+        # abort mode
+        else:
+            for sender in self._all_senders:
+                sender.abort()
 
     def handler_automt(self):
         '''Handle the 'Auto-select Threading' button.
@@ -1160,18 +1179,18 @@ class EmailerGUI(EmailPrompt):
         self.entry_server.insert(0, CONFIG['server'])
 
         # progress bar!
-        self.progress_label = tk.Label(self.root, text="Sent: 0 / 0 ", 
+        self.progress_label = tk.Label(self.root, text="Sent: 0 / 0 ",
                                        **self.colors)
         self.progress_label.grid(row=9, column=0, sticky=tk.W)
         self.progress_bar = ttk.Progressbar(self.root, orient='horizontal',
                                             length=600, mode='determinate')
         self.progress_bar.grid(row=9, column=2, columnspan=8)
-        
+
         # abort button
         self.button_abort = tk.Button(self.root, text="Abort",
                                       command=self.handler_button_abort,
                                       **self.buttons)
-        self.button_abort.grid(row=9, column=2)
+        self.button_abort.grid(row=9, column=1, sticky=tk.W)
 
         # multithreading
         self.multithread_label = tk.Label(self.root,
@@ -1198,7 +1217,7 @@ class EmailerGUI(EmailPrompt):
         self.n_threads = tk.Entry(self.root, width=3)
         self.n_threads.insert(0, CONFIG['multithread'][1])
         self.n_threads.grid(row=12, column=1, sticky=tk.W)
-        
+
         self.entry_delay = tk.Entry(self.root, width=3)
         self.entry_delay.grid(row=11, column=1, sticky=tk.W)
         self.entry_delay.insert(0, CONFIG['delay'])
