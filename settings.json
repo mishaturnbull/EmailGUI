@@ -1,6 +1,6 @@
 {
     "from": "spambot@127.0.0.1",
-    "to": "misha@127.0.0.1",
+    "to": "misha@localhost",
     "server": "127.0.0.1:25",
     "subject": "Apology",
     "attach": "",

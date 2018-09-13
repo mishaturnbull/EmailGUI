@@ -42,10 +42,10 @@ import sys
 import platform
 import time
 import smtplib
-import subprocess
 import os
 import json
 import threading
+import copy
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -146,6 +146,7 @@ if not args.NOGUI:
         import tkinter.messagebox as messagebox
         import tkinter.filedialog as filedialog
         import tkinter.scrolledtext as scrolledtext
+        from tkinter import ttk
     elif sys.version_info.major == 2:
         # pylint: disable=E0401
         # pylint complains about not finding tkMessageBox etc
@@ -156,6 +157,7 @@ if not args.NOGUI:
         import tkMessageBox as messagebox
         import tkFileDialog as filedialog
         import ScrolledText as scrolledtext
+        import ttk
     else:
         assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
                        not something I designed this program to be used with.'
@@ -201,6 +203,10 @@ class EmailSendError(Exception):
     '''Exception class for exceptions raised within EmailGUI.'''
     pass
 
+class EmergencyStop(Exception):
+    '''Specifically to be raised when the abort button is pressed.'''
+    pass
+
 # these are the error classes that should raise a popup box presented to the
 # user.  others either should never happen or should be silenced and handled
 # internally.
@@ -234,12 +240,6 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 
 try:
 
-    with open("MT_ULIM.template", 'r') as template:
-        MT_ULIM = template.read()
-
-    with open("MT_LIM.template", 'r') as template:
-        MT_LIM = template.read()
-
     with open("GUI_DOC.template", 'r') as template:
         GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
                                          SUBJECT=CONFIG['subject'],
@@ -264,11 +264,13 @@ fail.
 
 Prioritizes likeliehood of success over speed.
 
-Returns a tuple (mt_mode, mt_num):
+Returns a tuple (mt_mode, mt_num, con_per):
     :str: mt_mode := one of ['none', 'lim', 'ulim']
     :int: mt_num := if mt_mode == 'none': one of [0, 180]
                     if mt_mode == 'lim': in range(1, 16)
                     if mt_mode == 'ulim': 0
+    :bool: con_per := whether or not a connection should be established
+                      for each email
 
 Note that in the case mt_mode == 'none', mt_num actually does not indicate
 the number of threads to use, but rather a delay factor for intentionally
@@ -361,14 +363,26 @@ def verify_to_email(address, serv, frm, pwd):
     server.quit()
     return resp
 
+# %% multithreading!
+class EmailSendHandler(threading.Thread):
+    '''Handle a group of EmailSender classes.'''
 
-# %% class for sending emails
-class EmailSender(object):
-    '''Class to do the dirty work of sending emails.'''
+    def __init__(self, bar_update_handle, **kwargs):
+        super(EmailSendHandler, self).__init__()
+        self._handler = bar_update_handle
 
-    def __init__(self, **kwargs):
         self._options = kwargs
         self._check_config()
+
+        if self._handler is not None:
+            self._handler.progress_bar["maximum"] = self["amount"]
+
+        self.do_abort = False
+        self.is_done = False
+
+        self.n_sent = 0
+
+        self._threads = []
 
     ###################################
     # allow user to be lazy, and get things like EmailSender(...)['to']
@@ -390,42 +404,171 @@ class EmailSender(object):
         necessary = ['From', 'to', 'subject', 'multithreading', 'password',
                      'amount', 'message', 'server']
         for attr in necessary:
-            assert attr in self._options, 'EmailSender() missing ' + attr
+            assert attr in self._options, 'EmailSendHandler() missing ' + attr
+
+    def generate_send_threads(self):
+        '''Make a list of threads containing the threads to be run in their
+        necessary configuration.'''
+        mt_mode = self['multithreading'][0]
+
+        # easiest case first.  If using unlimited threading mode, then simply
+        # spawn <amount of emails> threads that send 1 email each.
+        if mt_mode == 'ulim':
+            n_threads = self['amount']
+            n_emails_per_thread = 1
+
+        # if we're on limited mode, then we need to spawn n amount of threads
+        # with a certain amount of emails each.
+        elif mt_mode == 'lim':
+            n_threads = self['multithreading'][1]
+            n_emails_per_thread = self['amount'] // n_threads
+
+        # no multithreading.  1 thread, all the emails.
+        elif mt_mode == 'none':
+            n_threads = 1
+            n_emails_per_thread = self['amount']
+
+        # now, generate the fake options and feed them down to the worker
+        # threads
+        fake_options = copy.deepcopy(self._options)
+        fake_options['amount'] = n_emails_per_thread
+
+        for _ in range(n_threads):
+            thread = EmailSender(self, **fake_options)
+            self._threads.append(thread)
+
+    def run(self):
+
+        self.generate_send_threads()
+        self.start_threads()
+
+        # continously monitor for all threads to be done, then mark self as done
+
+        while not self.is_done:
+
+            for thread in self._threads:
+                if thread.is_done:
+                    thread.join()
+                    self._threads.remove(thread)
+
+            if len(self._threads) == 0:
+                self.is_done = True
+
+    def start_threads(self):
+        '''Just do it!'''
+
+        # straightforward.  go through the list self._threads and .start()
+        # them all.
+
+        for thread in self._threads:
+            thread.start()
+
+    def abort(self):
+        '''Attempt to halt the sending of more emails.'''
+        # Oh, fuck.  This is gonna be tough.
+
+        self.do_abort = True
+
+        for thread in self._threads:
+            thread.do_abort = True
+        
+        # force the abort button into reset mode by faking being done sending
+        # (which, we are, but not because all emails have been sent)
+        self.is_done = True
+        self.n_sent -= 1
+        self.sent_another_one()
+
+        # I guess that'll have to do... not like we can suddenly switch the
+        # system over to an airgapped network.  I can dream.
+
+    def sent_another_one(self):
+        '''Call this exactly once per email sent.  For updating progress bar.'''
+        self.n_sent += 1
+
+        if self._handler is not None:
+            self._handler.progress_bar["value"] = self.n_sent
+            self._handler.progress_label.config(text="Sent: {} / {}".format(
+                str(self.n_sent), str(self["amount"])))
+
+        # if we're done, and have a handler...
+        # change abort button to reset and switch the handler functions
+        if self.n_sent >= self["amount"] or self.is_done:
+            self.is_done = True
+
+            if self._handler is not None:
+                self._handler.button_abort["text"] = "Reset"
+
+class EmailSender(threading.Thread):
+    '''Class to do the dirty work of sending emails.'''
+
+    def __init__(self, handler, **kwargs):
+        self._handler = handler
+
+        self._options = kwargs
+
+        self.do_abort = False
+        self.is_done = False
+
+        self.n_sent = 0
+
+        super(EmailSender, self).__init__()
+
+    ###################################
+    # allow user to be lazy, and get things like EmailSender(...)['to']
+    # also keeps number of attributes down to one -- internal dictionary
+    # called self._options
+    def __setitem__(self, key, value):
+        self._options[key] = value
+
+    def __contains__(self, key):
+        return key in self._options
+
+    def __getitem__(self, key):
+        return self._options[key]
+    # end lazy-user-ability
+    ##################################
 
     def build_message(self):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
+
+        # forge return headers
         msg.add_header('reply-to', self['display_from'])
         msg['From'] = "\"" + self['display_from'] + "\" <" + \
                       self['display_from'] + ">"
         msg.add_header('X-Google-Original-From',
                        '"{df}" <{df}>'.format(df=self['display_from']))
+
+        # multiple recipients
         if isinstance(self['to'], list):
             msg['To'] = COMMASPACE.join(self['to'])
         else:
             msg['To'] = self['to']
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = self['subject']
-        mt_mode = self['multithreading'][0]
 
-        # conditionally append message numbering info based on multithreading
-        # mode.  kinda ugly, but makes better output
-        if mt_mode == 'none':
-            # no multithreading - just use a counter
-            part2 = '\n\nEmail {num} of ' + str(self['amount'])
-            msg.attach(MIMEText(self['message'] + part2))
+        # if debugging, append some useful info to the bottom of the emails
+        if CONFIG['debug']:
+            mt_mode = self['multithreading'][0]
 
-        elif mt_mode == 'lim':
-            # limited multithreading - number the messages from each thread
-            n_mail = str(int(self['amount']) // self['multithreading'][1])
-            part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
-                                                      '({ident})')
-            msg.attach(MIMEText(self['message'] + part2))
+            # conditionally append message numbering info based on
+            # multithreading mode.  kinda ugly, but makes better output
+            if mt_mode == 'none':
+                # no multithreading - just use a counter
+                part2 = '\n\nEmail {num} of ' + str(self['amount'])
+                msg.attach(MIMEText(self['message'] + part2))
 
-        elif mt_mode == 'ulim':
-            # unlimited multithreading - number the threads
-            part2 = '\n\nEmail from {ident} on ulim'
-            msg.attach(MIMEText(self['message'] + part2))
+            elif mt_mode == 'lim':
+                # limited multithreading - number the messages from each thread
+                n_mail = str(int(self['amount']) // self['multithreading'][1])
+                part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
+                                                          '({ident})')
+                msg.attach(MIMEText(self['message'] + part2))
+
+            elif mt_mode == 'ulim':
+                # unlimited multithreading - number the threads
+                part2 = '\n\nEmail from {ident} on ulim'
+                msg.attach(MIMEText(self['message'] + part2))
 
         # attachments
         for filename in self['attach']:
@@ -440,79 +583,32 @@ class EmailSender(object):
         # save the message as an attribute
         self['MIMEMessage'] = msg
 
-    def write_tempfile(self):
-        '''Make a temporary file and write the program to it.'''
-        mt_mode = self['multithreading'][0]
-
-        if mt_mode == 'none':
-            # multithreading not enabled - no file needed.  write it anyways,
-            # though, because we were told to.
-            with open('tempEmail.py', 'w') as tempfile:
-                tempfile.write('pass')
-            return 1
-
-        elif mt_mode == 'lim':
-            # limited multithreading
-            # grab number of threads
-            mt_num = self['multithreading'][1]
-            # do math.  find out how many emails per thread
-            num_emails = str(int(self['amount']) // mt_num)
-            self._options['num_emails'] = num_emails
-
-            # write the file
-            with open('tempEmail.py', 'w') as tempfile:
-                mime = self['MIMEMessage'].as_string()
-                tempfile.write(MT_LIM.format(server=self['server'],
-                                             From=self['From'],
-                                             to=self['to'],
-                                             password=self['password'],
-                                             message=mime,
-                                             num_emails=num_emails))
-            return 1
-
-        elif mt_mode == 'ulim':
-            # unlimited multithreading.  write script for 1 email
-            with open('tempEmail.py', 'w') as tempfile:
-                mime = self['MIMEMessage'].as_string()
-                tempfile.write(MT_ULIM.format(server=self['server'],
-                                              From=self['From'],
-                                              to=self['to'],
-                                              password=self['password'],
-                                              message=mime))
-            return 1
-
     def _launch(self, nsend, _recur=0, delay=0):
         '''Send `nsend` emails.'''
 
         CONFIG['con_per'] = self['multithreading'][2]
-        
+
         #print(CONFIG)
 
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
-            
-            print("Starting connect")
-            
-            port = int(self['server'].split(':')[1])
-            
+
             if 'localhost' in self['server'] or \
-                '127.0.0.1' in self['server']:
+               '127.0.0.1' in self['server']:
                 # for local servers,
                 # we assume Mercury.  Mercury has no TLS or authentication.
                 # as such, it requires special handling (its own if-block)
                 # This is fuckin' weird and bad, but hey, it works well.
-                
+
                 server = smtplib.SMTP(self['server'])
                 server.ehlo()
-            
+
             else:
                 server.ehlo_or_helo_if_needed()
                 server.starttls()
                 server.ehlo()
                 server.login(self['From'], self['password'])
-            
-            print("Handshake complete!")
-            
+
             if CONFIG['debug']:
                 server.set_debuglevel(1)
 
@@ -526,27 +622,23 @@ class EmailSender(object):
         # rest of the emails to be sent.
         try:
             mime = self['MIMEMessage'].as_string()
+            for _ in BEST_RANGE(nsend):
 
-            # this annoying if has to be here to make sure the email counter
-            # works properly on m.t. modes none and lim.  on ulim, there is no
-            # counter per say.
-            if self['multithreading'][0] == 'none':
-                for _ in BEST_RANGE(nsend):
-                    if CONFIG['debug']:
-                        print('Launching {} at ' .format(_) + str(time.time()))
+                # important! check for a thread exit flag and abort if needed
+                if self.do_abort:
+                    raise EmergencyStop("Aborting!")
+                    # hackish way to jump straight to the finally clause
+                    # that closes the connection and exits.
 
-                    if CONFIG['con_per']:
-                        server = connect()
-                    server.sendmail(self['From'], self['to'],
-                                    mime.format(num=_ + 1))
-                    time.sleep(int(delay))
-            elif self['multithreading'][0] == 'lim':
-                for _ in BEST_RANGE(nsend):
-                    if CONFIG['debug']:
-                        print('Launching {} at '.format(_) + str(time.time()))
-                    if CONFIG['con_per']:
-                        server = connect()
-                    server.sendmail(self['From'], self['to'], mime)
+                if CONFIG['debug']:
+                    print('Launching {} at ' .format(_) + str(time.time()))
+
+                if CONFIG['con_per']:
+                    server = connect()
+                server.sendmail(self['From'], self['to'],
+                                mime.format(num=_ + 1))
+                self._handler.sent_another_one()
+                time.sleep(int(delay))
 
         except smtplib.SMTPServerDisconnected:
             # first, stop trying to connect to a dead server
@@ -562,53 +654,75 @@ class EmailSender(object):
                 # tried too many times, give up and make it the user's
                 # problem
                 raise
+        
+        except EmergencyStop:
+            # if we're connecting per email, then there will be no active
+            # connection to close and as such we don't need to do anything
+            if CONFIG['con_per']:
+                pass
+            else:
+                server.quit()
+            return
 
         finally:
             # everything died.  just give up.
             server.quit()
 
-    def send(self):
-        '''FIRE THE CANNONS!'''
-        # make sure everything is ready
-        self._check_config()
+    def run(self):
         self.build_message()
+
         if CONFIG['debug']:
-            mime = self['MIMEMessage'].as_string()
-            print("Launching {} copies: \n{}".format(self['amount'], mime))
-        mt_mode = self['multithreading'][0]
+            mime_msg = self['MIMEMessage'].as_string()
+            print("Launching {} copies of message:\n{}".format(self['amount'],
+                                                               mime_msg))
 
-        # no multithreading. simply launch emails.
-        if mt_mode == 'none':
-            self._launch(self['amount'], delay=self['delay'])
+        self._launch(self['amount'], delay=self['delay'])
 
-        # multithreading, yuck
-        elif mt_mode in ['lim', 'ulim']:
-            # either way we need a tempfile
-            self.write_tempfile()
+        self.is_done = True
 
-            # limited mode - only use mt_num threads (prevents errors)
-            if mt_mode == 'lim':
-                mt_num = self['multithreading'][1]
-                # spawn the threads
-                for _ in BEST_RANGE(int(self['multithreading'][1])):
-                    print("New thread: {} emails".format(self['num_emails']))
-                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-                                     stderr=subprocess.STDOUT)
 
-                # sometimes the number of emails doesn't divide evenly by
-                # mt_num, so we have to launch the remainder from here.
-                # usually a small number so this is ok
-                leftover = self['amount'] - (self['amount'] // mt_num) * mt_num
-                print('{} leftovers'.format(leftover))
-                self._launch(leftover)
-
-            # unlimited mode - one thread for each email
-            # often throws connectivity errors
-            elif mt_mode == 'ulim':
-                for _ in BEST_RANGE(self['amount']):
-                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-                                     stderr=subprocess.STDOUT)
-        return 1
+    # TODO: ensure this is not referred to anywhere, and delete!
+#    def send(self):
+#        '''FIRE THE CANNONS!'''
+#        # make sure everything is ready
+#        self.build_message()
+#        if CONFIG['debug']:
+#            mime = self['MIMEMessage'].as_string()
+#            print("Launching {} copies: \n{}".format(self['amount'], mime))
+#        mt_mode = self['multithreading'][0]
+#
+#        # no multithreading. simply launch emails.
+#        if mt_mode == 'none':
+#            self._launch(self['amount'], delay=self['delay'])
+#
+#        # multithreading, yuck
+#        elif mt_mode in ['lim', 'ulim']:
+#            # either way we need a tempfile
+#            self.write_tempfile()
+#
+#            # limited mode - only use mt_num threads (prevents errors)
+#            if mt_mode == 'lim':
+#                mt_num = self['multithreading'][1]
+#                # spawn the threads
+#                for _ in BEST_RANGE(int(self['multithreading'][1])):
+#                    print("New thread: {} emails".format(self['num_emails']))
+#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
+#                                     stderr=subprocess.STDOUT)
+#
+#                # sometimes the number of emails doesn't divide evenly by
+#                # mt_num, so we have to launch the remainder from here.
+#                # usually a small number so this is ok
+#                leftover = self['amount'] - (self['amount'] // mt_num) * mt_num
+#                print('{} leftovers'.format(leftover))
+#                self._launch(leftover)
+#
+#            # unlimited mode - one thread for each email
+#            # often throws connectivity errors
+#            elif mt_mode == 'ulim':
+#                for _ in BEST_RANGE(self['amount']):
+#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
+#                                     stderr=subprocess.STDOUT)
+#        return 1
 
 
 # %% classes for user interface
@@ -622,40 +736,37 @@ class EmailPrompt(object):
         self.multithreading = self.subject = self.files = self.text = None
         self._sender = self.rcpt = self.password = self.display_from = None
 
+        self._all_senders = []
+
         if _autorun:
             self._run()
 
-    def _make_sender(self, i=0):
+    def _make_sender(self, i=0, bar_update_handle=None):
         '''Create the EmailSender object for this email.'''
         print("EmailPrompt._make_sender: i = " + str(i))
-        self._sender = EmailSender(server=self.server[i],
-                                   From=self.frm[i],
-                                   to=self.rcpt,
-                                   message=self.text,
-                                   subject=self.subject,
-                                   multithreading=self.multithreading,
-                                   attach=self.files,
-                                   password=self.password[i],
-                                   amount=self.amount,
-                                   delay=self.delay,
-                                   display_from=self.display_from)
+        self._sender = EmailSendHandler(bar_update_handle,
+                                        server=self.server[i],
+                                        From=self.frm[i],
+                                        to=self.rcpt,
+                                        message=self.text,
+                                        subject=self.subject,
+                                        multithreading=self.multithreading,
+                                        attach=self.files,
+                                        password=self.password[i],
+                                        amount=self.amount,
+                                        delay=self.delay,
+                                        display_from=self.display_from)
+        self._all_senders.append(self._sender)
 
-    def send_msg(self):
+    def send_msg(self, bar_update_handle=None):
         '''FIRE THE CANNONS!'''
         if CONFIG['debug']:
             print('Sending msg: \n{}\nfrom {} {} times'.format(self.text,
                                                                self.server,
                                                                self.amount))
         for i in BEST_RANGE(len(self.frm)):
-            self._make_sender(i)
-            self._sender.send()
-
-    def make_tempfile(self):
-        '''If necessary, use the EmailSender class to write a temporary
-        file.'''
-        self._make_sender()
-        self._sender.build_message()
-        self._sender.write_tempfile()
+            self._make_sender(i, bar_update_handle)
+            self._sender.start()
 
     def handler_automt(self):
         '''User wants us to automatically select multithreading settings -
@@ -767,7 +878,7 @@ class EmailerGUI(EmailPrompt):
                 # here as well, the program sends exactly twice as many emails
                 # as it should because it sends emails i times, i times.
                 # therefore shouldn't loop here.
-                self.send_msg()
+                self.send_msg(self)
             except smtplib.SMTPResponseException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.smtp_error)
@@ -775,10 +886,24 @@ class EmailerGUI(EmailPrompt):
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.args[0])
 
-            # we're done here, notify the user that it's safe to exit
-            # This is okay on multithreading modes because exiting this
-            # thread shouldn't kill it's spawned processesß
-            messagebox.showinfo("Done!", "Done!")
+    def handler_button_abort(self):
+        '''Do our best job at stopping the sending of further emails.'''
+
+        # reset mode
+        if self._sender.is_done:
+            self.progress_bar["value"] = 0
+            self.progress_label.config(text="Sent: 0 / 0")
+
+            self._all_senders = []
+            self._sender = None
+
+            # switch back to abort
+            self.button_abort["text"] = "Abort"
+
+        # abort mode
+        else:
+            for sender in self._all_senders:
+                sender.abort()
 
     def handler_automt(self):
         '''Handle the 'Auto-select Threading' button.
@@ -856,9 +981,9 @@ class EmailerGUI(EmailPrompt):
             self.password += [self.password[-1]] * (len(self.frm) -
                                                     len(self.password))
 
-    def _make_sender(self, i=0):
+    def _make_sender(self, i=0, bar_update_handler=None):
         self.create_msg_config()
-        EmailPrompt._make_sender(self, i)
+        EmailPrompt._make_sender(self, i, bar_update_handler)
 
     def check_retcode(self):
         '''Look up an SMTP return error code and get its message.'''
@@ -1072,11 +1197,25 @@ class EmailerGUI(EmailPrompt):
                                sticky=tk.W + tk.E)
         self.entry_server.insert(0, CONFIG['server'])
 
+        # progress bar!
+        self.progress_label = tk.Label(self.root, text="Sent: 0 / 0 ",
+                                       **self.colors)
+        self.progress_label.grid(row=9, column=0, sticky=tk.W)
+        self.progress_bar = ttk.Progressbar(self.root, orient='horizontal',
+                                            length=600, mode='determinate')
+        self.progress_bar.grid(row=9, column=2, columnspan=8)
+
+        # abort button
+        self.button_abort = tk.Button(self.root, text="Abort",
+                                      command=self.handler_button_abort,
+                                      **self.buttons)
+        self.button_abort.grid(row=9, column=1, sticky=tk.W)
+
         # multithreading
         self.multithread_label = tk.Label(self.root,
                                           text='Multithreading mode:',
                                           **self.colors)
-        self.multithread_label.grid(row=9, column=0, sticky=tk.W)
+        self.multithread_label.grid(row=10, column=0, sticky=tk.W)
         self.query_multithreading = tk.StringVar()
         self.query_multithreading.set(CONFIG['multithread'][0])
         self.mt_none = tk.Radiobutton(self.root, text='None',
@@ -1091,12 +1230,16 @@ class EmailerGUI(EmailPrompt):
                                       variable=self.query_multithreading,
                                       value='ulim',
                                       **self.colors)
-        self.mt_none.grid(row=10, column=0, sticky=tk.W)
-        self.mt_lim.grid(row=11, column=0, sticky=tk.W)
-        self.mt_ulim.grid(row=12, column=0, sticky=tk.W)
+        self.mt_none.grid(row=11, column=0, sticky=tk.W)
+        self.mt_lim.grid(row=12, column=0, sticky=tk.W)
+        self.mt_ulim.grid(row=13, column=0, sticky=tk.W)
         self.n_threads = tk.Entry(self.root, width=3)
         self.n_threads.insert(0, CONFIG['multithread'][1])
-        self.n_threads.grid(row=11, column=1, sticky=tk.W)
+        self.n_threads.grid(row=12, column=1, sticky=tk.W)
+
+        self.entry_delay = tk.Entry(self.root, width=3)
+        self.entry_delay.grid(row=11, column=1, sticky=tk.W)
+        self.entry_delay.insert(0, CONFIG['delay'])
 
         # file attachments
         self.file_label = tk.Label(self.root, text='Attachments: ',
@@ -1108,15 +1251,15 @@ class EmailerGUI(EmailPrompt):
         # server options label
         self.opt_label1 = tk.Label(self.root, text='Server options:',
                                    **self.colors)
-        self.opt_label1.grid(row=9, column=2, sticky=tk.W)
+        self.opt_label1.grid(row=10, column=2, sticky=tk.W)
 
         # max server retry attempts
         self.label_retry = tk.Label(self.root, text='Max. Retries: ',
                                     **self.colors)
-        self.label_retry.grid(row=10, column=2, sticky=tk.W)
+        self.label_retry.grid(row=11, column=2, sticky=tk.W)
         self.entry_retry = tk.Entry(self.root, width=3)
         self.entry_retry.insert(0, str(CONFIG['max_retries']))
-        self.entry_retry.grid(row=10, column=3, sticky=tk.W)
+        self.entry_retry.grid(row=11, column=3, sticky=tk.W)
 
         # connect once or per email
         self.query_conmode = tk.BooleanVar()
@@ -1129,8 +1272,8 @@ class EmailerGUI(EmailPrompt):
                                       variable=self.query_conmode,
                                       value=True,
                                       **self.colors)
-        self.con_once.grid(row=11, column=2, sticky=tk.W)
-        self.con_per.grid(row=12, column=2, sticky=tk.W)
+        self.con_once.grid(row=12, column=2, sticky=tk.W)
+        self.con_per.grid(row=13, column=2, sticky=tk.W)
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
@@ -1161,8 +1304,6 @@ class EmailerGUI(EmailPrompt):
         self.menu_clientside.add_command(label='Exit', command=self.exit)
         self.menu_clientside.add_command(label='Exit without cleanup',
                                          command=self.root.destroy)
-        self.menu_clientside.add_command(label='Write tempEmail.py',
-                                         command=self.make_tempfile)
         self.menu_top.add_cascade(label='Client', menu=self.menu_clientside)
 
         self.menu_help = tk.Menu(self.menu_top, tearoff=0)
@@ -1173,10 +1314,6 @@ class EmailerGUI(EmailPrompt):
         self.menu_top.add_cascade(label='Help', menu=self.menu_help)
 
         self.root.config(menu=self.menu_top)
-
-        self.entry_delay = tk.Entry(self.root, width=3)
-        self.entry_delay.grid(row=10, column=1, sticky=tk.W)
-        self.entry_delay.insert(0, CONFIG['delay'])
 
         # label CONFIG['debug'] mode if it is on
         if CONFIG['debug']:
@@ -1195,6 +1332,6 @@ if __name__ == '__main__':
         elif args.COMMANDLINE:
             p = EmailPrompt(_autorun=False)
             p.send_msg()
-    except KeyboardInterrupt as exc:
+    except KeyboardInterrupt:
         sys.stdout.FSO_close()
         sys.stderr.FSO_close()
