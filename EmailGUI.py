@@ -681,50 +681,6 @@ class EmailSender(threading.Thread):
         self.is_done = True
 
 
-    # TODO: ensure this is not referred to anywhere, and delete!
-#    def send(self):
-#        '''FIRE THE CANNONS!'''
-#        # make sure everything is ready
-#        self.build_message()
-#        if CONFIG['debug']:
-#            mime = self['MIMEMessage'].as_string()
-#            print("Launching {} copies: \n{}".format(self['amount'], mime))
-#        mt_mode = self['multithreading'][0]
-#
-#        # no multithreading. simply launch emails.
-#        if mt_mode == 'none':
-#            self._launch(self['amount'], delay=self['delay'])
-#
-#        # multithreading, yuck
-#        elif mt_mode in ['lim', 'ulim']:
-#            # either way we need a tempfile
-#            self.write_tempfile()
-#
-#            # limited mode - only use mt_num threads (prevents errors)
-#            if mt_mode == 'lim':
-#                mt_num = self['multithreading'][1]
-#                # spawn the threads
-#                for _ in BEST_RANGE(int(self['multithreading'][1])):
-#                    print("New thread: {} emails".format(self['num_emails']))
-#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-#                                     stderr=subprocess.STDOUT)
-#
-#                # sometimes the number of emails doesn't divide evenly by
-#                # mt_num, so we have to launch the remainder from here.
-#                # usually a small number so this is ok
-#                leftover = self['amount'] - (self['amount'] // mt_num) * mt_num
-#                print('{} leftovers'.format(leftover))
-#                self._launch(leftover)
-#
-#            # unlimited mode - one thread for each email
-#            # often throws connectivity errors
-#            elif mt_mode == 'ulim':
-#                for _ in BEST_RANGE(self['amount']):
-#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-#                                     stderr=subprocess.STDOUT)
-#        return 1
-
-
 # %% classes for user interface
 class EmailPrompt(object):
     '''Prompt the user for information for emails, and send it.  Done via
