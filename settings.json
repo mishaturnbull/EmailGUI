@@ -1,7 +1,7 @@
 {
-    "from": "spambot@127.0.0.1",
-    "to": "misha@localhost",
-    "server": "127.0.0.1:25",
+    "from": "",
+    "to": "",
+    "server": "",
     "subject": "Apology",
     "attach": "",
     "multithread": null,
