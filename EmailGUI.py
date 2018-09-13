@@ -146,6 +146,7 @@ if not args.NOGUI:
         import tkinter.messagebox as messagebox
         import tkinter.filedialog as filedialog
         import tkinter.scrolledtext as scrolledtext
+        from tkinter import ttk
     elif sys.version_info.major == 2:
         # pylint: disable=E0401
         # pylint complains about not finding tkMessageBox etc
@@ -156,6 +157,7 @@ if not args.NOGUI:
         import tkMessageBox as messagebox
         import tkFileDialog as filedialog
         import ScrolledText as scrolledtext
+        import ttk
     else:
         assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
                        not something I designed this program to be used with.'
@@ -361,13 +363,20 @@ def verify_to_email(address, serv, frm, pwd):
 class EmailSendHandler(threading.Thread):
     '''Handle a group of EmailSender classes.'''
 
-    def __init__(self, **kwargs):
+    def __init__(self, bar_update_handle, **kwargs):
         super(EmailSendHandler, self).__init__()
+        self._handler = bar_update_handle
+        
         self._options = kwargs
         self._check_config()
+        
+        if self._handler is not None:
+            self._handler.progress_bar["maximum"] = self["amount"]
 
         self.do_abort = False
         self.is_done = False
+        
+        self.n_sent = 0
 
         self._threads = []
 
@@ -421,7 +430,7 @@ class EmailSendHandler(threading.Thread):
         fake_options['amount'] = n_emails_per_thread
 
         for _ in range(n_threads):
-            thread = EmailSender(**fake_options)
+            thread = EmailSender(self, **fake_options)
             self._threads.append(thread)
 
     def run(self):
@@ -462,16 +471,25 @@ class EmailSendHandler(threading.Thread):
         # I guess that'll have to do... not like we can suddenly switch the
         # system over to an airgapped network.  I can dream.
 
-
+    def sent_another_one(self):
+        '''Call this exactly once per email sent.  For updating progress bar.'''
+        self.n_sent += 1
+        
+        if self._handler is not None:
+            self._handler.progress_bar["value"] = self.n_sent
 
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
 
-    def __init__(self, **kwargs):
+    def __init__(self, handler, **kwargs):
+        self._handler = handler
+        
         self._options = kwargs
 
         self.do_abort = False
         self.is_done = False
+        
+        self.n_sent = 0
 
         super(EmailSender, self).__init__()
 
@@ -599,6 +617,7 @@ class EmailSender(threading.Thread):
                     server = connect()
                 server.sendmail(self['From'], self['to'],
                                 mime.format(num=_ + 1))
+                self._handler.sent_another_one()
                 time.sleep(int(delay))
 
         except smtplib.SMTPServerDisconnected:
@@ -691,10 +710,11 @@ class EmailPrompt(object):
         if _autorun:
             self._run()
 
-    def _make_sender(self, i=0):
+    def _make_sender(self, i=0, bar_update_handle=None):
         '''Create the EmailSender object for this email.'''
         print("EmailPrompt._make_sender: i = " + str(i))
-        self._sender = EmailSendHandler(server=self.server[i],
+        self._sender = EmailSendHandler(bar_update_handle,
+                                        server=self.server[i],
                                         From=self.frm[i],
                                         to=self.rcpt,
                                         message=self.text,
@@ -706,14 +726,14 @@ class EmailPrompt(object):
                                         delay=self.delay,
                                         display_from=self.display_from)
 
-    def send_msg(self):
+    def send_msg(self, bar_update_handle=None):
         '''FIRE THE CANNONS!'''
         if CONFIG['debug']:
             print('Sending msg: \n{}\nfrom {} {} times'.format(self.text,
                                                                self.server,
                                                                self.amount))
         for i in BEST_RANGE(len(self.frm)):
-            self._make_sender(i)
+            self._make_sender(i, bar_update_handle)
             self._sender.start()
 
     def handler_automt(self):
@@ -826,18 +846,13 @@ class EmailerGUI(EmailPrompt):
                 # here as well, the program sends exactly twice as many emails
                 # as it should because it sends emails i times, i times.
                 # therefore shouldn't loop here.
-                self.send_msg()
+                self.send_msg(self)
             except smtplib.SMTPResponseException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.smtp_error)
             except smtplib.SMTPException as exc:
                 if isinstance(exc, tuple(POPUP_ERRORS)):
                     messagebox.showerror(CONFIG['title'], exc.args[0])
-
-            # we're done here, notify the user that it's safe to exit
-            # This is okay on multithreading modes because exiting this
-            # thread shouldn't kill it's spawned processesß
-            messagebox.showinfo("Done!", "Done!")
 
     def handler_automt(self):
         '''Handle the 'Auto-select Threading' button.
@@ -915,9 +930,9 @@ class EmailerGUI(EmailPrompt):
             self.password += [self.password[-1]] * (len(self.frm) -
                                                     len(self.password))
 
-    def _make_sender(self, i=0):
+    def _make_sender(self, i=0, bar_update_handler=None):
         self.create_msg_config()
-        EmailPrompt._make_sender(self, i)
+        EmailPrompt._make_sender(self, i, bar_update_handler)
 
     def check_retcode(self):
         '''Look up an SMTP return error code and get its message.'''
@@ -1131,11 +1146,19 @@ class EmailerGUI(EmailPrompt):
                                sticky=tk.W + tk.E)
         self.entry_server.insert(0, CONFIG['server'])
 
+        # progress bar!
+        self.progress_label = tk.Label(self.root, text="Sent: 0 / 0 ", 
+                                       **self.colors)
+        self.progress_label.grid(row=9, column=0, sticky=tk.W)
+        self.progress_bar = ttk.Progressbar(self.root, orient='horizontal',
+                                            length=700, mode='determinate')
+        self.progress_bar.grid(row=9, column=1, columnspan=9)
+
         # multithreading
         self.multithread_label = tk.Label(self.root,
                                           text='Multithreading mode:',
                                           **self.colors)
-        self.multithread_label.grid(row=9, column=0, sticky=tk.W)
+        self.multithread_label.grid(row=10, column=0, sticky=tk.W)
         self.query_multithreading = tk.StringVar()
         self.query_multithreading.set(CONFIG['multithread'][0])
         self.mt_none = tk.Radiobutton(self.root, text='None',
@@ -1150,12 +1173,16 @@ class EmailerGUI(EmailPrompt):
                                       variable=self.query_multithreading,
                                       value='ulim',
                                       **self.colors)
-        self.mt_none.grid(row=10, column=0, sticky=tk.W)
-        self.mt_lim.grid(row=11, column=0, sticky=tk.W)
-        self.mt_ulim.grid(row=12, column=0, sticky=tk.W)
+        self.mt_none.grid(row=11, column=0, sticky=tk.W)
+        self.mt_lim.grid(row=12, column=0, sticky=tk.W)
+        self.mt_ulim.grid(row=13, column=0, sticky=tk.W)
         self.n_threads = tk.Entry(self.root, width=3)
         self.n_threads.insert(0, CONFIG['multithread'][1])
-        self.n_threads.grid(row=11, column=1, sticky=tk.W)
+        self.n_threads.grid(row=12, column=1, sticky=tk.W)
+        
+        self.entry_delay = tk.Entry(self.root, width=3)
+        self.entry_delay.grid(row=11, column=1, sticky=tk.W)
+        self.entry_delay.insert(0, CONFIG['delay'])
 
         # file attachments
         self.file_label = tk.Label(self.root, text='Attachments: ',
@@ -1167,15 +1194,15 @@ class EmailerGUI(EmailPrompt):
         # server options label
         self.opt_label1 = tk.Label(self.root, text='Server options:',
                                    **self.colors)
-        self.opt_label1.grid(row=9, column=2, sticky=tk.W)
+        self.opt_label1.grid(row=10, column=2, sticky=tk.W)
 
         # max server retry attempts
         self.label_retry = tk.Label(self.root, text='Max. Retries: ',
                                     **self.colors)
-        self.label_retry.grid(row=10, column=2, sticky=tk.W)
+        self.label_retry.grid(row=11, column=2, sticky=tk.W)
         self.entry_retry = tk.Entry(self.root, width=3)
         self.entry_retry.insert(0, str(CONFIG['max_retries']))
-        self.entry_retry.grid(row=10, column=3, sticky=tk.W)
+        self.entry_retry.grid(row=11, column=3, sticky=tk.W)
 
         # connect once or per email
         self.query_conmode = tk.BooleanVar()
@@ -1188,8 +1215,8 @@ class EmailerGUI(EmailPrompt):
                                       variable=self.query_conmode,
                                       value=True,
                                       **self.colors)
-        self.con_once.grid(row=11, column=2, sticky=tk.W)
-        self.con_per.grid(row=12, column=2, sticky=tk.W)
+        self.con_once.grid(row=12, column=2, sticky=tk.W)
+        self.con_per.grid(row=13, column=2, sticky=tk.W)
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
@@ -1230,10 +1257,6 @@ class EmailerGUI(EmailPrompt):
         self.menu_top.add_cascade(label='Help', menu=self.menu_help)
 
         self.root.config(menu=self.menu_top)
-
-        self.entry_delay = tk.Entry(self.root, width=3)
-        self.entry_delay.grid(row=10, column=1, sticky=tk.W)
-        self.entry_delay.insert(0, CONFIG['delay'])
 
         # label CONFIG['debug'] mode if it is on
         if CONFIG['debug']:
