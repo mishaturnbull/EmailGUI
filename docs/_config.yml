@@ -1,1 +1,14 @@
+# name
+name: EmailGUI Documentation
+
+# description
+description: Documentation for the mass emailer.
+
+# site theme
 theme: jekyll-theme-minimal
+
+# author
+author: Michael Turnbull
+author_email: mishaturnbull@gmail.com
+
+show_downloads: true
