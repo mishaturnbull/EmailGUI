@@ -333,15 +333,6 @@ will we return 180.
 CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
 
 
-def cleanup():
-    '''Clean up temporary files created by the program.'''
-    try:
-        os.remove('tempEmail.py')
-    except OSError:
-        # file does not exist, our job is done
-        pass
-
-
 def verify_to(address, serv):
     """Given an address and a server to use, send an SMTP VRFY command
     and return the result."""
@@ -419,7 +410,7 @@ class EmailSendHandler(threading.Thread):
         total_emails = 0
         for sender in self._threads:
             total_emails += sender["amount"]
-            sender._check_config()
+            EmailSendHandler._check_config(sender)
 
         if total_emails != self["amount"]:
             raise EmergencyStop("Number of emails about to be sent does "
@@ -482,7 +473,7 @@ class EmailSendHandler(threading.Thread):
                     thread.join()
                     self._threads.remove(thread)
 
-            if len(self._threads) == 0:
+            if not self._threads:
                 self.is_done = True
 
     def start_threads(self):
@@ -619,8 +610,6 @@ class EmailSender(threading.Thread):
 
         CONFIG['con_per'] = self['multithreading'][2]
 
-        #print(CONFIG)
-
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
 
@@ -730,7 +719,6 @@ class EmailPrompt(object):
 
     def _make_sender(self, i=0, bar_update_handle=None):
         '''Create the EmailSender object for this email.'''
-        print("EmailPrompt._make_sender: i = " + str(i))
         self._sender = EmailSendHandler(bar_update_handle,
                                         server=self.server[i],
                                         From=self.frm[i],
@@ -834,8 +822,7 @@ class EmailerGUI(EmailPrompt):
         self.root = tk.Tk()
         self.init_gui()
 
-        self.root.protocol('WM_DELETE_WINDOW', lambda: [cleanup(),
-                                                        self.exit()])
+        self.root.protocol('WM_DELETE_WINDOW', self.exit)
 
         # self.root.mainloop needs to be called sometimes - but not always?
         # can't figure out a pattern here.
@@ -845,7 +832,7 @@ class EmailerGUI(EmailPrompt):
             self.root.mainloop()
 
     def exit(self):
-        '''Close the window.  ***DOES NOT RUN CLEANUP***'''
+        '''Close the window. '''
         self.root.destroy()
 
     def handler_button_send(self):
@@ -1288,10 +1275,7 @@ class EmailerGUI(EmailPrompt):
         self.menu_top.add_cascade(label='Email', menu=self.menu_email)
 
         self.menu_clientside = tk.Menu(self.menu_top, tearoff=0)
-        self.menu_clientside.add_command(label='Cleanup', command=cleanup)
         self.menu_clientside.add_command(label='Exit', command=self.exit)
-        self.menu_clientside.add_command(label='Exit without cleanup',
-                                         command=self.root.destroy)
         self.menu_top.add_cascade(label='Client', menu=self.menu_clientside)
 
         self.menu_help = tk.Menu(self.menu_top, tearoff=0)
