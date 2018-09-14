@@ -24,7 +24,7 @@
     "con_per": false,
     "confirmation_msg": [
         "Are you certain you wish to proceed?",
-        "This cannot be undone and can have dangerous results!"
+        "This cannot reliably be undone and can have unfortunate results!"
     ],
     "width": 100,
     "SMTP_resp_codes": {

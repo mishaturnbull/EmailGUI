@@ -27,7 +27,6 @@ from __future__ import (division, print_function, generators, absolute_import)
 
 # [DONE] TODO: nogui mode
 # [DONE] TODO: delay factor in autoselect multithreading
-# TODO: make help window scroll
 # [DONE] TODO: allow multiple accounts to be used as senders
 # TODO: custom SMTP server?
 # TODO: command-line implementation (wip)
@@ -195,6 +194,7 @@ class FakeSTDOUT(object):
         '''Close the log files.'''
         self.log.close()
 
+
 sys.stdout = FakeSTDOUT(sys.stdout, CONFIG['log_stdout'])
 sys.stderr = FakeSTDOUT(sys.stderr, CONFIG['log_stderr'])
 
@@ -203,9 +203,11 @@ class EmailSendError(Exception):
     '''Exception class for exceptions raised within EmailGUI.'''
     pass
 
+
 class EmergencyStop(Exception):
     '''Specifically to be raised when the abort button is pressed.'''
     pass
+
 
 # these are the error classes that should raise a popup box presented to the
 # user.  others either should never happen or should be silenced and handled
@@ -310,8 +312,8 @@ will we return 180.
             # client: "I want to send 3.3 emails to Joe!"
             # server: "Wut"
             #
-            # To avoid this, use 14 threads and send the remainder in the
-            # parent (this one)
+            # To avoid this, use 14 threads with the same amount and send
+            # the remainder in a 15th
             return ('lim', 14, False)
     elif num_emails == 500:
         # send 500 emails, but send them in one shot -- often easier, as noted
@@ -406,6 +408,23 @@ class EmailSendHandler(threading.Thread):
         for attr in necessary:
             assert attr in self._options, 'EmailSendHandler() missing ' + attr
 
+    def _final_check(self):
+        '''Make sure everything is right in one final last-minute data
+        validation check.
+
+        At the time this method is called, it assumes that
+        .generate_send_threads() has already been called and generated
+        the worker threads.'''
+
+        total_emails = 0
+        for sender in self._threads:
+            total_emails += sender["amount"]
+            sender._check_config()
+
+        if total_emails != self["amount"]:
+            raise EmergencyStop("Number of emails about to be sent does "
+                                "not match number of emails requested!")
+
     def generate_send_threads(self):
         '''Make a list of threads containing the threads to be run in their
         necessary configuration.'''
@@ -437,12 +456,24 @@ class EmailSendHandler(threading.Thread):
             thread = EmailSender(self, **fake_options)
             self._threads.append(thread)
 
+        # double check here that we're sending the correct number
+        # of emails per issue #3.
+        if (mt_mode == "lim") and \
+           (n_threads * n_emails_per_thread != self['amount']):
+            n_leftover = self['amount'] - (n_threads * n_emails_per_thread)
+            ffake_options = copy.deepcopy(self._options)
+            ffake_options['amount'] = n_leftover
+            thread = EmailSender(self, **ffake_options)
+            self._threads.append(thread)
+
     def run(self):
 
         self.generate_send_threads()
+        self._final_check()
         self.start_threads()
 
-        # continously monitor for all threads to be done, then mark self as done
+        # continously monitor for all threads to be done, then mark
+        # self as done
 
         while not self.is_done:
 
@@ -471,7 +502,7 @@ class EmailSendHandler(threading.Thread):
 
         for thread in self._threads:
             thread.do_abort = True
-        
+
         # force the abort button into reset mode by faking being done sending
         # (which, we are, but not because all emails have been sent)
         self.is_done = True
@@ -654,7 +685,7 @@ class EmailSender(threading.Thread):
                 # tried too many times, give up and make it the user's
                 # problem
                 raise
-        
+
         except EmergencyStop:
             # if we're connecting per email, then there will be no active
             # connection to close and as such we don't need to do anything
@@ -679,50 +710,6 @@ class EmailSender(threading.Thread):
         self._launch(self['amount'], delay=self['delay'])
 
         self.is_done = True
-
-
-    # TODO: ensure this is not referred to anywhere, and delete!
-#    def send(self):
-#        '''FIRE THE CANNONS!'''
-#        # make sure everything is ready
-#        self.build_message()
-#        if CONFIG['debug']:
-#            mime = self['MIMEMessage'].as_string()
-#            print("Launching {} copies: \n{}".format(self['amount'], mime))
-#        mt_mode = self['multithreading'][0]
-#
-#        # no multithreading. simply launch emails.
-#        if mt_mode == 'none':
-#            self._launch(self['amount'], delay=self['delay'])
-#
-#        # multithreading, yuck
-#        elif mt_mode in ['lim', 'ulim']:
-#            # either way we need a tempfile
-#            self.write_tempfile()
-#
-#            # limited mode - only use mt_num threads (prevents errors)
-#            if mt_mode == 'lim':
-#                mt_num = self['multithreading'][1]
-#                # spawn the threads
-#                for _ in BEST_RANGE(int(self['multithreading'][1])):
-#                    print("New thread: {} emails".format(self['num_emails']))
-#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-#                                     stderr=subprocess.STDOUT)
-#
-#                # sometimes the number of emails doesn't divide evenly by
-#                # mt_num, so we have to launch the remainder from here.
-#                # usually a small number so this is ok
-#                leftover = self['amount'] - (self['amount'] // mt_num) * mt_num
-#                print('{} leftovers'.format(leftover))
-#                self._launch(leftover)
-#
-#            # unlimited mode - one thread for each email
-#            # often throws connectivity errors
-#            elif mt_mode == 'ulim':
-#                for _ in BEST_RANGE(self['amount']):
-#                    subprocess.Popen([sys.executable, 'tempEmail.py', str(_)],
-#                                     stderr=subprocess.STDOUT)
-#        return 1
 
 
 # %% classes for user interface
@@ -867,7 +854,8 @@ class EmailerGUI(EmailPrompt):
            popup saying why.'''
 
         # ask for confirmation
-        if messagebox.askyesno(CONFIG['title'], CONFIG['confirmation_msg']):
+        if messagebox.askyesno(CONFIG['title'],
+                               ' '.join(CONFIG['confirmation_msg'])):
             try:
                 self.create_msg_config()
                 # dear reader, you might be inclined to expect something like:
