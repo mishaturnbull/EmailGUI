@@ -25,10 +25,11 @@
         3.1.1 [MT-NONE](#no-multithreading-mt-none)  
         3.1.2 [MT-LIM](#limited-multithreading-mt-lim)  
         3.1.3 [MT-ULIM](#unlimited-multithreading-mt-ulim)  
-    3.2 [Connection controls](#connection-controls)
-        3.2.1 [Number of retries](#max-retries)
-        3.2.2 [Connect once](#connect-once)
-        3.2.3 [Connect per send](#connect-per-send)
+        3.1.4 [Automatic Mode Selection](#auto-selection)  
+    3.2 [Connection controls](#connection-controls)  
+        3.2.1 [Number of retries](#max-retries)  
+        3.2.2 [Connect once](#connect-once)  
+        3.2.3 [Connect per send](#connect-per-send)  
 
 # The Layout
 
@@ -181,6 +182,10 @@ The numerical entry field next to the `Limited:` radioselector is the number of 
 The opposite of MT-NONE, which sends all emails in 1 thread:  MT-ULIM sends 1 email per thread.  In as many threads as there are emails to send.
 
 I do not recommend using this mode for quantities above 100 emails, as I have found it to quickly hog system resources.  However, for smaller quantities, it can be quite fast.
+
+### Auto Selection
+
+There is a feature that allows for the program to best determine the multithreading and connection mode settings that are most likely to succeed for the desired amount of emails given.  This feature is located under the `Email` tab -> `Auto-select Threading`.  It adjusts the settings automatically.
 
 ## Connection Controls
 
