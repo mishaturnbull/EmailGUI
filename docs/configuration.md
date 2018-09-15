@@ -21,6 +21,10 @@
     2.8 [Progress indicator](#status-indicator)  
 
 3.0 [Advanced configuration](#advanced-configuration)  
+    3.1 [Multithreading controls](#multithreading)  
+        3.1.1 [MT-NONE](#no-multithreading-mt-none)  
+        3.1.2 [MT-LIM](#limited-multithreading-mt-lim)  
+        3.1.3 [MT-ULIM](#unlimited-multithreading-mt-ulim)  
 
 # The Layout
 
@@ -132,3 +136,43 @@ This button next to the progress bar does a few things.  First, while sending em
 ***ABORTING IS DIFFERENT FROM UNDOING***.  Aborting simply means "stop sending more emails" whereas it does not in any way "unsend" already sent messages.  
 
 Either when all emails are sent or when the abort button is clicked, it serves another purpose: a reset button.  Simply resets the counter and switches back to abort mode, ready for the next batch.
+
+# Advanced Configuration
+
+This is the section to pay attention to, because it lets you do some powerful things.
+
+## Multithreading
+
+Multithreading has been an obvious feature from the beginning.  Simply put, instead of sending one email at a time, we can now send many at once.  Of course, there are limitations to this, such as Python's Global Interpreter Lock and the limitations of processor multitasking, but I have seen an increase in performance.
+
+There are three modes of multithreading supported:
+
+### No Multithreading (MT-NONE)
+
+This sends all the emails from one thread, one after another.  It was the first mode implemented and is likely the most foolproof here.  You will notice that on the radioselector for the `None` option, there is a number entry box.  This entry box specifies the number of seconds between one email send completion and the next beginning.  
+
+At first, intentionally delaying the email time can seem useless.  However, it does have advantages.  First, Gmail limits users to 500 emails per rolling 24 hours.  Settings the number of emails to 500 and the delay to 180 secnods will allow the sender to simply roll right into the next period of 24 hours and send emails at a continous rate.  It could also be used to bypass/decrease likeliehood of spam detection, as bots like this one tend to send emails very quickly and slowing that rate down can avoid being flagged as spam.
+
+### Limited Multithreading (MT-LIM)
+
+This mode is desiged to spawn a specific number of threads, each sending a specific number of emails.  It allows for the quantity of emails to be split up nicely into worker threads without spawning insane amounts of threads.  Usually, I aim for around the square root of the number of total emails to be sent for each thread, for example:
+
+> Let's say we're sending 100 emails.
+> I want to use limited multithreading mode.
+> I take sqrt(100) = 10, and decide to use 10 threads sending 10 emails each.
+
+> Let's say we're sending 9,000 emails.
+> I want to use limited multithreading mode.
+> I take sqrt(9000) = 94.86), so I decide to use 90 threads with 100 emails each.
+
+If you don't like the sound of 90 worker threads (I don't), you could also play around with the numbers a bit and use 9 threads with 1000 emails each.
+
+The numerical entry field next to the `Limited:` radioselector is the number of threads to be spawned.
+
+*Note*: When using Gmail, I have found that sending with more than 15 threads tends to cause SMTP 421 errors (`Service not available, closing transmissino channel`).  Other users doing similar tasks report that this error seems to be thrown in the case of too many concurrent connections to Gmail's SMTP server from 1 IP address.
+
+### Unlimited Multithreading (MT-ULIM)
+
+The opposite of MT-NONE, which sends all emails in 1 thread:  MT-ULIM sends 1 email per thread.  In as many threads as there are emails to send.
+
+I do not recommend using this mode for quantities above 100 emails, as I have found it to quickly hog system resources.  However, for smaller quantities, it can be quite fast.
