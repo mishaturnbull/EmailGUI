@@ -12,8 +12,8 @@
         2.3.2 [Sending Passwords](#from-passwords)  
         2.3.3 [Display From Address](#forge-from-account)  
     2.4 [Recipients](#recipients)  
-        2.4.1 [Verify Recipient Address](#verify-button)  
-        2.4.2 [Recipient Address](#recipient-address)  
+        2.4.1 [Recipient Address](#recipient-address)  
+        2.4.2 [Verify Recipient Address](#verify-button)  
     2.5 [Server](#server)  
     2.6 [Message text](#message)  
     2.7 [Attachments](#attachments)  
@@ -36,7 +36,7 @@ Let's go over all the fields quickly, with links to their detailed sections for 
 [2.3.1 From Address(es)](#from-accounts): The account, or accounts, to send [a given quantity](#number-to-send) of emails from.  
 [2.3.3 Display From](#forge-from-account): The address that the email should appear to come from.  
 [2.3.2 Password](#from-passwords): The passwords to the accounts that are sending email.  
-[2.4.1 To Address](#recipient-address): The address to send emails to  
+[2.4.2 To Address](#recipient-address): The address to send emails to  
 [2.5 Server](#server): The SMTP server to connect to.  
 [2.6 Message](#message): The message text of the email.  
 [2.7 Attachments](#attachments): Files to attach to the email, if any.  
@@ -84,3 +84,51 @@ What could be more fun than emailing your sysadmin as your sysadmin?  Nothing!  
 
 ***THIS CAN BE USED TO DO BAD AND/OR ILLEGAL THINGS.  IF YOU DO BAD THINGS, I DO NOT CLAIM ANY RESPONSIBILITY FOR YOUR ACTIONS.***
 
+## Recipients
+
+You put email addresses here and then you owe their owner a bottle of whatever they drink, for the headache you're going to cause them.
+
+### Recipient Address
+
+If you want to send to more than one address, separate the victi...er, recipient addresses with commas.  Otherwise, just enter the address that you're sending emails to.
+
+### Verify button
+
+This was implemented to catch typos in addresses and therefore reduce or nullify accidental backscatter spam.  It pulls data automatically from previously populated fields including to, from, password, and server and offers two methods to check whether or not the recipient address is valid.  The first is `SMTP VRFY`.  The "verify" command, enabled on some servers, allows a user to simply check whether or not the address is valid.  The second method is called `MAIL`.  This was implemented on my discovery that there are actually quite few servers that allow a `VRFY` command to be used.  The `MAIL` method simply tries to send them an email and sees if the server rejects it.  It's more reliable, but slower.
+
+Once you find the correct address and server, you can use the `Paste address` and `Paste server` buttons to automatically copy the to address and server into the main window.
+
+## Server
+
+This is the address of the SMTP server you'd like to send email to.  I've listed some common options below (the ones I've used):
+
+| Server          | Address            |
+| --------------- | ------------------ |
+| Gmail           | smtp.gmail.com:589 |
+| Local (Mercury) | 127.0.0.1:25       |
+
+Syntax must be in the form of `<valid URL>:<valid port number>`.
+
+## Message
+
+This is where the text goes.  I think my default is quite funny, but if you have something you want to say, it goes here.
+
+## Attachments
+
+Should you want to attach files or images to your emails, put the location of the file in this entry box.
+
+### The browse button
+
+A `Browse` button has been included for easy file selection.  It opens a file browser for the native OS, and when you select a file, pastes the location into the box automatically.
+
+## Status Indicator
+
+It's a progress bar, Einstein.  
+
+### The Reset Button
+
+This button next to the progress bar does a few things.  First, while sending emails, if clicked before all emails are sent then it aborts sending.
+
+***ABORTING IS DIFFERENT FROM UNDOING***.  Aborting simply means "stop sending more emails" whereas it does not in any way "unsend" already sent messages.  
+
+Either when all emails are sent or when the abort button is clicked, it serves another purpose: a reset button.  Simply resets the counter and switches back to abort mode, ready for the next batch.
