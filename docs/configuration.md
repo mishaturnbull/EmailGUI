@@ -25,6 +25,10 @@
         3.1.1 [MT-NONE](#no-multithreading-mt-none)  
         3.1.2 [MT-LIM](#limited-multithreading-mt-lim)  
         3.1.3 [MT-ULIM](#unlimited-multithreading-mt-ulim)  
+    3.2 [Connection controls](#connection-controls)
+        3.2.1 [Number of retries](#max-retries)
+        3.2.2 [Connect once](#connect-once)
+        3.2.3 [Connect per send](#connect-per-send)
 
 # The Layout
 
@@ -177,3 +181,23 @@ The numerical entry field next to the `Limited:` radioselector is the number of 
 The opposite of MT-NONE, which sends all emails in 1 thread:  MT-ULIM sends 1 email per thread.  In as many threads as there are emails to send.
 
 I do not recommend using this mode for quantities above 100 emails, as I have found it to quickly hog system resources.  However, for smaller quantities, it can be quite fast.
+
+## Connection Controls
+
+This is the section that directly affects how many connections are made to the server.
+
+### Max Retries
+
+The value entered in the `Max. Retries` entry box is the maximum number of times the program will attempt to send an email before discarding it and moving on.  It defaults to 5.
+
+### Connect Once
+
+This mode will establish one connection to the server (per thread) and maintain that connection to send emails.  It typically results in less likliehood of an SMTP 421 error, however, if that connection gets dropped, then that thread decreases its retry count by one.  If it reaches max retries, it gives up entirely -- which could result in not all emails being sent.
+
+In short, this mode allows a faster but slightly less reliable mode of delivering emails.
+
+### Connect per send
+
+This mode will establish one connection, send one email, drop the connection, and repeat.  It may result in a greater likliehood of an SMTP 421 error, however, if it doesn't trigger the spam detection, then it delivers emails much more reliably as the max retries setting applies to each individual email as opposed to all of them.
+
+In short, this mode allows for a slower but slightly more reliable mode of delivering emails.
