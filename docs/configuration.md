@@ -66,10 +66,11 @@ Help docs for a subject line?  Have you used email before?
 This is where stuff starts to get more interesting.  This program is capable of sending emails from more than one account.  Ironically, this is exactly the opposite of what most mass-mailers do:
 
 ```
-email1@gmail.com   ---.
-email2@gmail.com   ----+-.
-email3@gmail.com   ----+--+--> recipient@myserver.com
-email4@gmail.com   ---`
+email1@gmail.com   -----\
+email2@gmail.com   -----|
+email3@gmail.com   -----+--> recipient@myserver.com
+email4@gmail.com   -----|
+email5@gmail.com   -----/
 ```
 
 Of course, you can also just use 1 email account to send from.  I'd recommend using 1 if you're sending using the same server that's receiving, but if you have to go across the internet at all (as opposed to remaining on local intranet, or even better the same machine) then using multiple accounts may be a better idea.
@@ -163,13 +164,13 @@ This mode is desiged to spawn a specific number of threads, each sending a speci
 
 > Let's say we're sending 9,000 emails.
 > I want to use limited multithreading mode.
-> I take sqrt(9000) = 94.86), so I decide to use 90 threads with 100 emails each.
+> I take sqrt(9000) = 94.86, so I decide to use 90 threads with 100 emails each.
 
 If you don't like the sound of 90 worker threads (I don't), you could also play around with the numbers a bit and use 9 threads with 1000 emails each.
 
 The numerical entry field next to the `Limited:` radioselector is the number of threads to be spawned.
 
-*Note*: When using Gmail, I have found that sending with more than 15 threads tends to cause SMTP 421 errors (`Service not available, closing transmissino channel`).  Other users doing similar tasks report that this error seems to be thrown in the case of too many concurrent connections to Gmail's SMTP server from 1 IP address.
+*Note*: When using Gmail, I have found that sending with more than 15 threads tends to cause SMTP 421 errors (`Service not available, closing transmission channel`).  Other users doing similar tasks report that this error seems to be thrown in the case of too many concurrent connections to Gmail's SMTP server from 1 IP address.
 
 ### Unlimited Multithreading (MT-ULIM)
 
