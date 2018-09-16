@@ -20,20 +20,6 @@ from __future__ import (division, print_function, generators, absolute_import)
 # R020160506T0850
 # EmailGUI.py
 
-# pylint: disable=W0511
-# pylint yells at me for being organized and keeping track of goals -- it
-# doesn't like TODO comments
-# hrmph.  i shall not hear it.
-
-# [DONE] TODO: nogui mode
-# [DONE] TODO: delay factor in autoselect multithreading
-# [DONE] TODO: allow multiple accounts to be used as senders
-# TODO: custom SMTP server?
-# TODO: command-line implementation (wip)
-# [DONE] TODO: notify on completion
-# [DONE] TODO: test multiple attachment sending
-# [DONE] TODO: Email verification
-
 # %% imports and constants
 
 import argparse
