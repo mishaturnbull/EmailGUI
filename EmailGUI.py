@@ -540,12 +540,24 @@ class EmailSender(threading.Thread):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
 
-        # forge return headers
-        msg.add_header('reply-to', self['display_from'])
-        msg['From'] = "\"" + self['display_from'] + "\" <" + \
-                      self['display_from'] + ">"
+        # forge return headers if requested
+        # use this weird and logic here to determine, in 1 swoop and error-free,
+        # if we have a GUI handler and if so, whether the checkbox is checked.
+        # this will work because python breaks out of and gates early if the
+        # first condition is false.  therefore, if there is no GUI handler,
+        # the first argument is false, and the second test (forge-from) will
+        # never throw an AttributeError
+        if self._handler._handler and \
+           (self._handler._handler.forge_from.get() == 1):
+            sender = self['display_from']
+        else:
+            sender = self['From']
+    
+        msg.add_header('reply-to', sender)
+        msg['From'] = "\"" + sender + "\" <" + \
+                      sender + ">"
         msg.add_header('X-Google-Original-From',
-                       '"{df}" <{df}>'.format(df=self['display_from']))
+                       '"{df}" <{df}>'.format(df=sender))
 
         # multiple recipients
         if isinstance(self['to'], list):
@@ -1225,6 +1237,19 @@ class EmailerGUI(EmailPrompt):
                                       **self.colors)
         self.con_once.grid(row=12, column=2, sticky=tk.W)
         self.con_per.grid(row=13, column=2, sticky=tk.W)
+
+        # compliance options
+        self.label_compliance = tk.Label(self.root, text="RFC2822 Compliance",
+                                         **self.colors)
+        self.label_compliance.grid(row=10, column=4, sticky=tk.W)
+
+        self.forge_from = tk.IntVar()
+        self.forge_from.set(1)
+        self.forge_from_box = tk.Checkbutton(self.root, text="Forge sender",
+                                             variable=self.forge_from,
+                                             **self.colors)
+        self.forge_from_box.grid(row=11, column=4, sticky=tk.W)
+
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
