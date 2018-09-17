@@ -544,7 +544,7 @@ class EmailSender(threading.Thread):
         msg = MIMEMultipart()
 
         # forge return headers if requested
-        # use this weird and logic here to determine, in 1 swoop and error-free,
+        # use this weird and logic here to determine, in 1 swoop and error-free
         # if we have a GUI handler and if so, whether the checkbox is checked.
         # this will work because python breaks out of and gates early if the
         # first condition is false.  therefore, if there is no GUI handler,
