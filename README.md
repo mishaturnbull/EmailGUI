@@ -26,4 +26,6 @@ forgiveness partway through.
 
 ### Advanced
 
-Click the help button.
+[Click here][config] for a bunch more configuration options.
+
+[config]: https://mishaturnbull.github.io/EmailGUI/configuration.html
