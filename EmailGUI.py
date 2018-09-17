@@ -375,7 +375,7 @@ class EmailSendHandler(threading.Thread):
         if total_emails != self["amount"]:
             raise EmergencyStop("Number of emails about to be sent does "
                                 "not match number of emails requested!")
-        
+
         if CONFIG['debug']:
             print("EmailSendHandler final check completed successfully")
 
@@ -406,8 +406,12 @@ class EmailSendHandler(threading.Thread):
         fake_options = copy.deepcopy(self._options)
         fake_options['amount'] = n_emails_per_thread
 
-        for _ in range(n_threads):
+        for i in range(n_threads):
             thread = EmailSender(self, **fake_options)
+            thread.name = "{} / {} / {}".format(str(i),
+                                                str(n_threads),
+                                                str(n_emails_per_thread))
+
             self._threads.append(thread)
 
         # double check here that we're sending the correct number
@@ -418,8 +422,11 @@ class EmailSendHandler(threading.Thread):
             ffake_options = copy.deepcopy(self._options)
             ffake_options['amount'] = n_leftover
             thread = EmailSender(self, **ffake_options)
+            thread.name = "{} / {} / {}".format(str(i + 1),
+                                                str(n_threads),
+                                                str(n_leftover))
             self._threads.append(thread)
-        
+
         if CONFIG['debug']:
             print("EmailSendHandler generated {} threads "
                   "sending {} each".format(
@@ -539,26 +546,13 @@ class EmailSender(threading.Thread):
 
         # if debugging, append some useful info to the bottom of the emails
         if CONFIG['debug']:
-            mt_mode = self['multithreading'][0]
 
-            # conditionally append message numbering info based on
-            # multithreading mode.  kinda ugly, but makes better output
-            if mt_mode == 'none':
-                # no multithreading - just use a counter
-                part2 = '\n\nEmail {num} of ' + str(self['amount'])
-                msg.attach(MIMEText(self['message'] + part2))
+            i, n_threads, n_mails = (int(p) for p in self.name.split(" / "))
 
-            elif mt_mode == 'lim':
-                # limited multithreading - number the messages from each thread
-                n_mail = str(int(self['amount']) // self['multithreading'][1])
-                part2 = '\n\nEmail {num} of ' + n_mail + (' from thread {thread}'
-                                                          '({ident})')
-                msg.attach(MIMEText(self['message'] + part2))
+            part2 = "\n\nThread #{} of {}, sending {}/thread".format(
+                str(i + 1), str(n_threads), str(n_mails))
 
-            elif mt_mode == 'ulim':
-                # unlimited multithreading - number the threads
-                part2 = '\n\nEmail from {ident} on ulim'
-                msg.attach(MIMEText(self['message'] + part2))
+            msg.attach(MIMEText(self['message'] + part2))
 
         # attachments
         for filename in self['attach']:
