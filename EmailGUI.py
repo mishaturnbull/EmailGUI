@@ -308,6 +308,7 @@ def verify_to(address, serv):
     # import smtplib
     server = smtplib.SMTP(serv)
     resp = server.verify(address)
+    server.quit()
     return resp
 
 
@@ -317,9 +318,11 @@ def verify_to_email(address, serv, frm, pwd):
     # import smtplib
     server = smtplib.SMTP(serv)
     server.ehlo_or_helo_if_needed()
-    server.starttls()
-    server.ehlo()
-    server.login(frm, pwd)
+    if server.has_extn("STARTTLS"):
+        server.starttls()
+        server.ehlo()
+    if server.has_extn("AUTH"):
+        server.login(frm, pwd)
     server.mail(frm)
     resp = server.rcpt(address)
     server.quit()
@@ -552,7 +555,7 @@ class EmailSender(threading.Thread):
             sender = self['display_from']
         else:
             sender = self['From']
-    
+
         msg.add_header('reply-to', sender)
         msg['From'] = "\"" + sender + "\" <" + \
                       sender + ">"
@@ -601,20 +604,15 @@ class EmailSender(threading.Thread):
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
 
-            if 'localhost' in self['server'] or \
-               '127.0.0.1' in self['server']:
-                # for local servers,
-                # we assume Mercury.  Mercury has no TLS or authentication.
-                # as such, it requires special handling (its own if-block)
-                # This is fuckin' weird and bad, but hey, it works well.
+            server = smtplib.SMTP(self['server'])
+            server.ehlo_or_helo_if_needed()
 
-                server = smtplib.SMTP(self['server'])
-                server.ehlo()
-
-            else:
-                server.ehlo_or_helo_if_needed()
+            if server.has_extn("STARTTLS"):
                 server.starttls()
                 server.ehlo()
+
+            # by default, mercury doesn't use AUTH!
+            if server.has_extn("AUTH"):
                 server.login(self['From'], self['password'])
 
             if CONFIG['debug']:
@@ -643,6 +641,7 @@ class EmailSender(threading.Thread):
                 if CONFIG['con_per']:
                     server.quit()
                     server = connect()
+
                 server.sendmail(self['From'], self['to'],
                                 mime.format(num=_ + 1))
                 self._handler.sent_another_one()
