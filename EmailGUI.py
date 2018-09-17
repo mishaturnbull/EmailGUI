@@ -165,11 +165,16 @@ class FakeSTDOUT(object):
     def __init__(self, stream, filename):
         self.terminal = stream
         self.log = open(filename, 'w')
+        self._filename = filename
+        
+        self.is_empty = True
 
     def write(self, message):
         '''Impersonate sys.stdout.write()'''
         self.terminal.write(message)
         self.log.write(message)
+        
+        self.is_empty = False
 
     def flush(self):
         '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
@@ -178,6 +183,10 @@ class FakeSTDOUT(object):
     def FSO_close(self):
         '''Close the log files.'''
         self.log.close()
+        
+        if not self.is_empty and not CONFIG['debug']:
+            os.remove(self._filename)
+        
         return self.terminal
 
 
