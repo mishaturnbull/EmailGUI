@@ -1,0 +1,15 @@
+# travis.CI yml config file
+
+language: python
+
+os:
+  - linux
+
+install:
+  - pip install flake8-diff
+
+# for now, just do style checking.  more tests may come later.
+script: 
+  - >
+      git fetch origin $TRAVIS_BRANCH:$TRAVIS_BRANCH --depth 1;
+      flake8-diff --flake8-options $TRAVIS_BRANCH;
