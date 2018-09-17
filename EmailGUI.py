@@ -1027,7 +1027,7 @@ class EmailerGUI(EmailPrompt):
         label_from.grid(row=0, column=0, sticky=tk.W)
         entry_from = tk.Entry(vrfymen, width=40)
         entry_from.grid(row=0, column=1, columnspan=2, sticky=tk.W)
-        entry_from.insert(0, CONFIG['from'].split(',')[0])
+        entry_from.insert(0, self.entry_from.get().split(',')[0])
         label_password = tk.Label(vrfymen, text='Verify password:',
                                   **self.colors)
         label_password.grid(row=1, column=0, sticky=tk.W)
