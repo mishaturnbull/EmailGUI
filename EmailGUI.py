@@ -115,8 +115,7 @@ CONFIG['to'] = args.RCPT
 CONFIG['from'] = args.FROM
 CONFIG['server'] = args.SERVER
 CONFIG['max_retries'] = args.MAX_RETRIES
-CONFIG['debug'] = args.DEBUG
-
+CONFIG['debug'] = args.DEBUG or CONFIG['debug']
 
 # %% conditional import/setup
 
@@ -179,10 +178,7 @@ class FakeSTDOUT(object):
     def FSO_close(self):
         '''Close the log files.'''
         self.log.close()
-
-
-sys.stdout = FakeSTDOUT(sys.stdout, CONFIG['log_stdout'])
-sys.stderr = FakeSTDOUT(sys.stderr, CONFIG['log_stderr'])
+        return self.terminal
 
 
 class EmailSendError(Exception):
@@ -203,28 +199,6 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
                 EmailSendError]
 
 # %% Tempfiles
-
-# Multithreading is set up as follows:
-#  In Limited mode (with #threads as mt_num):
-#   1. mt_lim is formatted and written to tempEmail.py
-#   2. mt_num new threads are spawned that each execute tempEmail.py
-#   3. If any emails remain to be sent [1], they are launched from this thread
-#  In Unlimited mode (with #emails as amount):
-#   1. mt_ulim is formatted and written to tempEmail.py
-#   2. amount new threads are spawned that each execute tempEmail.py
-
-# [1]: This can happen when amount % mt_num != 0, for example 100 emails acros
-#      15 threads. In this case, the threading autoselector will reduce
-#      #threads by 1 to avoid SMTP 421
-
-
-# this is the code that will be formatted and then written to a temporary file
-# for multithreading
-# unfortunately, the only way to pass the password on is to either pass via
-# sys.argv (unencrypted) or put it directly in the file (unencrypted).  i chose
-# to put it in the file given that the user of this program likely already
-# knows his/her password, and wouldn't be very concerned about him/herself
-# seeing it plain.
 
 try:
 
@@ -401,6 +375,9 @@ class EmailSendHandler(threading.Thread):
         if total_emails != self["amount"]:
             raise EmergencyStop("Number of emails about to be sent does "
                                 "not match number of emails requested!")
+        
+        if CONFIG['debug']:
+            print("EmailSendHandler final check completed successfully")
 
     def generate_send_threads(self):
         '''Make a list of threads containing the threads to be run in their
@@ -442,6 +419,11 @@ class EmailSendHandler(threading.Thread):
             ffake_options['amount'] = n_leftover
             thread = EmailSender(self, **ffake_options)
             self._threads.append(thread)
+        
+        if CONFIG['debug']:
+            print("EmailSendHandler generated {} threads "
+                  "sending {} each".format(
+                  str(n_threads), str(n_emails_per_thread)))
 
     def run(self):
 
@@ -1275,13 +1257,15 @@ class EmailerGUI(EmailPrompt):
 
         # label CONFIG['debug'] mode if it is on
         if CONFIG['debug']:
-            label_DEBUG = tk.Label(self.root, text='DEBUG')
-            label_DEBUG.grid(row=0, column=0)
+            label_DEBUG = tk.Label(self.root, text='DEBUG MODE ACTIVE')
+            label_DEBUG.grid(row=1, column=2)
 
 
 # %% main
 if __name__ == '__main__':
     try:
+        sys.stdout = FakeSTDOUT(sys.stdout, CONFIG['log_stdout'])
+        sys.stderr = FakeSTDOUT(sys.stderr, CONFIG['log_stderr'])
         # DO STUFF!
         if not args.NOGUI:
             EmailerGUI()
@@ -1291,5 +1275,7 @@ if __name__ == '__main__':
             p = EmailPrompt(_autorun=False)
             p.send_msg()
     except KeyboardInterrupt:
-        sys.stdout.FSO_close()
-        sys.stderr.FSO_close()
+        pass
+    finally:
+        sys.stdout = sys.stdout.FSO_close()
+        sys.stderr = sys.stderr.FSO_close()
