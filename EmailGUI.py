@@ -166,14 +166,14 @@ class FakeSTDOUT(object):
         self.terminal = stream
         self.log = open(filename, 'w')
         self._filename = filename
-        
+
         self.is_empty = True
 
     def write(self, message):
         '''Impersonate sys.stdout.write()'''
         self.terminal.write(message)
         self.log.write(message)
-        
+
         self.is_empty = False
 
     def flush(self):
@@ -183,10 +183,10 @@ class FakeSTDOUT(object):
     def FSO_close(self):
         '''Close the log files.'''
         self.log.close()
-        
+
         if not self.is_empty and not CONFIG['debug']:
             os.remove(self._filename)
-        
+
         return self.terminal
 
 
@@ -439,7 +439,7 @@ class EmailSendHandler(threading.Thread):
         if CONFIG['debug']:
             print("EmailSendHandler generated {} threads "
                   "sending {} each".format(
-                  str(n_threads), str(n_emails_per_thread)))
+                      str(n_threads), str(n_emails_per_thread)))
 
     def run(self):
 
@@ -503,6 +503,8 @@ class EmailSendHandler(threading.Thread):
 
             if self._handler is not None:
                 self._handler.button_abort["text"] = "Reset"
+
+                messagebox.showinfo(CONFIG['title'], "Sending complete!")
 
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
