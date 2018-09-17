@@ -553,6 +553,9 @@ class EmailSender(threading.Thread):
                 str(i + 1), str(n_threads), str(n_mails))
 
             msg.attach(MIMEText(self['message'] + part2))
+        else:
+            # no debug message -- just attach the message
+            msg.attach(MIMEText(self['message']))
 
         # attachments
         for filename in self['attach']:
