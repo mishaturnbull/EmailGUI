@@ -599,8 +599,7 @@ class EmailSender(threading.Thread):
 
             return server
 
-        if not CONFIG['con_per']:
-            server = connect()
+        server = connect()
 
         # try to send the emails.
         # in the case of a 421 error, assume temp. issue and try again with the
@@ -619,6 +618,7 @@ class EmailSender(threading.Thread):
                     print('Launching {} at ' .format(_) + str(time.time()))
 
                 if CONFIG['con_per']:
+                    server.quit()
                     server = connect()
                 server.sendmail(self['From'], self['to'],
                                 mime.format(num=_ + 1))
