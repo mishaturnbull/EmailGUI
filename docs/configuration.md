@@ -2,34 +2,19 @@
 
 # Table of Contents
 
-1.0 [The Layout](#the-layout)
-
-2.0 [Basic configuration](#basic-configuration)  
+1. [The Layout](#the-layout)  
+2. [Basic configuration](#basic-configuration)  
     2.1 [Number to Send](#number-to-send)  
     2.2 [Subject Line](#subject-line)  
-    2.3 [Sending Accounts](#from-accounts)  
-        2.3.1 [Sending Addresses](#from-addresses)  
-        2.3.2 [Sending Passwords](#from-passwords)  
-        2.3.3 [Display From Address](#forge-from-account)  
+    2.3 [Sending Accounts](#from-accounts)   
     2.4 [Recipients](#recipients)  
-        2.4.1 [Recipient Address](#recipient-address)  
-        2.4.2 [Verify Recipient Address](#verify-button)  
     2.5 [Server](#server)  
     2.6 [Message text](#message)  
     2.7 [Attachments](#attachments)  
-        2.7.1 [Browse button](#the-browse-button)  
     2.8 [Progress indicator](#status-indicator)  
-
-3.0 [Advanced configuration](#advanced-configuration)  
-    3.1 [Multithreading controls](#multithreading)  
-        3.1.1 [MT-NONE](#no-multithreading-mt-none)  
-        3.1.2 [MT-LIM](#limited-multithreading-mt-lim)  
-        3.1.3 [MT-ULIM](#unlimited-multithreading-mt-ulim)  
-        3.1.4 [Automatic Mode Selection](#auto-selection)  
+3. [Advanced configuration](#advanced-configuration)  
+    3.1 [Multithreading controls](#multithreading)   
     3.2 [Connection controls](#connection-controls)  
-        3.2.1 [Number of retries](#max-retries)  
-        3.2.2 [Connect once](#connect-once)  
-        3.2.3 [Connect per send](#connect-per-send)  
 
 # The Layout
 

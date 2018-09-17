@@ -15,6 +15,8 @@ Right now, EmailGUI is in a pseudo-beta stage.  I'm adding features and improvin
 
 For help, you can either browse around this GitHub Pages site (recommended) or use the included Help page, which is more accessible albiet a bit outdated.  That can be found by clicking on the `Help` tab and then selecting `Documentation`.
 
+The `Send` button is located under the `Email` menu in the top-left corner.
+
 [Click here][cfg] for help with configuring your first mass mail.
 
 [cfg]: configuration.html "Configuration"
