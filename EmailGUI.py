@@ -165,11 +165,16 @@ class FakeSTDOUT(object):
     def __init__(self, stream, filename):
         self.terminal = stream
         self.log = open(filename, 'w')
+        self._filename = filename
+
+        self.is_empty = True
 
     def write(self, message):
         '''Impersonate sys.stdout.write()'''
         self.terminal.write(message)
         self.log.write(message)
+
+        self.is_empty = False
 
     def flush(self):
         '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
@@ -178,6 +183,10 @@ class FakeSTDOUT(object):
     def FSO_close(self):
         '''Close the log files.'''
         self.log.close()
+
+        if not self.is_empty and not CONFIG['debug']:
+            os.remove(self._filename)
+
         return self.terminal
 
 
@@ -299,6 +308,7 @@ def verify_to(address, serv):
     # import smtplib
     server = smtplib.SMTP(serv)
     resp = server.verify(address)
+    server.quit()
     return resp
 
 
@@ -308,9 +318,11 @@ def verify_to_email(address, serv, frm, pwd):
     # import smtplib
     server = smtplib.SMTP(serv)
     server.ehlo_or_helo_if_needed()
-    server.starttls()
-    server.ehlo()
-    server.login(frm, pwd)
+    if server.has_extn("STARTTLS"):
+        server.starttls()
+        server.ehlo()
+    if server.has_extn("AUTH"):
+        server.login(frm, pwd)
     server.mail(frm)
     resp = server.rcpt(address)
     server.quit()
@@ -430,7 +442,7 @@ class EmailSendHandler(threading.Thread):
         if CONFIG['debug']:
             print("EmailSendHandler generated {} threads "
                   "sending {} each".format(
-                  str(n_threads), str(n_emails_per_thread)))
+                      str(n_threads), str(n_emails_per_thread)))
 
     def run(self):
 
@@ -495,6 +507,8 @@ class EmailSendHandler(threading.Thread):
             if self._handler is not None:
                 self._handler.button_abort["text"] = "Reset"
 
+                messagebox.showinfo(CONFIG['title'], "Sending complete!")
+
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
 
@@ -529,12 +543,24 @@ class EmailSender(threading.Thread):
         '''Construct the MIME multipart message.'''
         msg = MIMEMultipart()
 
-        # forge return headers
-        msg.add_header('reply-to', self['display_from'])
-        msg['From'] = "\"" + self['display_from'] + "\" <" + \
-                      self['display_from'] + ">"
+        # forge return headers if requested
+        # use this weird and logic here to determine, in 1 swoop and error-free
+        # if we have a GUI handler and if so, whether the checkbox is checked.
+        # this will work because python breaks out of and gates early if the
+        # first condition is false.  therefore, if there is no GUI handler,
+        # the first argument is false, and the second test (forge-from) will
+        # never throw an AttributeError
+        if self._handler._handler and \
+           (self._handler._handler.forge_from.get() == 1):
+            sender = self['display_from']
+        else:
+            sender = self['From']
+
+        msg.add_header('reply-to', sender)
+        msg['From'] = "\"" + sender + "\" <" + \
+                      sender + ">"
         msg.add_header('X-Google-Original-From',
-                       '"{df}" <{df}>'.format(df=self['display_from']))
+                       '"{df}" <{df}>'.format(df=sender))
 
         # multiple recipients
         if isinstance(self['to'], list):
@@ -578,20 +604,15 @@ class EmailSender(threading.Thread):
         def connect():
             '''Connect to the server.  Function-ized to save typing.'''
 
-            if 'localhost' in self['server'] or \
-               '127.0.0.1' in self['server']:
-                # for local servers,
-                # we assume Mercury.  Mercury has no TLS or authentication.
-                # as such, it requires special handling (its own if-block)
-                # This is fuckin' weird and bad, but hey, it works well.
+            server = smtplib.SMTP(self['server'])
+            server.ehlo_or_helo_if_needed()
 
-                server = smtplib.SMTP(self['server'])
-                server.ehlo()
-
-            else:
-                server.ehlo_or_helo_if_needed()
+            if server.has_extn("STARTTLS"):
                 server.starttls()
                 server.ehlo()
+
+            # by default, mercury doesn't use AUTH!
+            if server.has_extn("AUTH"):
                 server.login(self['From'], self['password'])
 
             if CONFIG['debug']:
@@ -620,6 +641,7 @@ class EmailSender(threading.Thread):
                 if CONFIG['con_per']:
                     server.quit()
                     server = connect()
+
                 server.sendmail(self['From'], self['to'],
                                 mime.format(num=_ + 1))
                 self._handler.sent_another_one()
@@ -1016,7 +1038,7 @@ class EmailerGUI(EmailPrompt):
         label_from.grid(row=0, column=0, sticky=tk.W)
         entry_from = tk.Entry(vrfymen, width=40)
         entry_from.grid(row=0, column=1, columnspan=2, sticky=tk.W)
-        entry_from.insert(0, CONFIG['from'].split(',')[0])
+        entry_from.insert(0, self.entry_from.get().split(',')[0])
         label_password = tk.Label(vrfymen, text='Verify password:',
                                   **self.colors)
         label_password.grid(row=1, column=0, sticky=tk.W)
@@ -1214,6 +1236,19 @@ class EmailerGUI(EmailPrompt):
                                       **self.colors)
         self.con_once.grid(row=12, column=2, sticky=tk.W)
         self.con_per.grid(row=13, column=2, sticky=tk.W)
+
+        # compliance options
+        self.label_compliance = tk.Label(self.root, text="RFC2822 Compliance",
+                                         **self.colors)
+        self.label_compliance.grid(row=10, column=4, sticky=tk.W)
+
+        self.forge_from = tk.IntVar()
+        self.forge_from.set(1)
+        self.forge_from_box = tk.Checkbutton(self.root, text="Forge sender",
+                                             variable=self.forge_from,
+                                             **self.colors)
+        self.forge_from_box.grid(row=11, column=4, sticky=tk.W)
+
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
