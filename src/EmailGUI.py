@@ -892,20 +892,36 @@ class EmailerGUI(EmailPrompt):
         elif suggestion[0] == 'none':
             self.entry_delay.delete(0, 'end')  # clear field
             self.entry_delay.insert(0, str(suggestion[1]))  # insert suggestion
-    
+
+    def handle_forge_from(self):
+        '''Handle the 'Display from' checkbox state-change.'''
+
+        is_forging = bool(self.forge_from.get())
+
+        if CONFIG['debug']:
+            print("Handling forge from mode change to {}".format(
+                    is_forging))
+
+        if is_forging:
+            self.entry_df.config(state='normal')
+            self.backscatter_box.config(state='normal')
+        else:
+            self.entry_df.config(state='disabled')
+            self.backscatter_box.config(state='disabled')
+
     def handler_backscatter(self):
         '''Handle the 'Increase Backscatter' checkbox state-change.'''
         is_backscattering = bool(self.increase_backscatter.get())
-        
+
         if CONFIG['debug']:
             print("Handling backscatter mode change to {}".format(
                     is_backscattering))
-        
+
         if is_backscattering:
             self.entry_df.config(textvariable=self.recipient_addresses,
                                  state='disabled')
         else:
-            self.entry_df.config(textvariable=self.display_from,
+            self.entry_df.config(textvariable=self.display_from_content,
                                  state='normal')
 
     def create_msg_config(self):
@@ -913,7 +929,7 @@ class EmailerGUI(EmailPrompt):
            Raises EmailSendError if something important is missing.'''
         self.server = self.entry_server.get()
         self.frm = self.entry_from.get()
-        self.display_from = self.display_from.get()
+        self.display_from = self.display_from_content.get()
         self.password = self.entry_password.get() or args.PASSWORD
         self.text = self.entry_text.get()
         self.subject = self.entry_subject.get()
@@ -1143,10 +1159,10 @@ class EmailerGUI(EmailPrompt):
         self.entry_from.insert(0, CONFIG['from'])
 
         # display from
-        self.display_from = tk.StringVar()
-        self.display_from.set(CONFIG['display_from'])
+        self.display_from_content = tk.StringVar()
+        self.display_from_content.set(CONFIG['display_from'])
         self.entry_df = tk.Entry(self.root, width=int(width/3),
-                                 textvariable=self.display_from)
+                                 textvariable=self.display_from_content)
         self.entry_df.grid(row=3, column=7, columnspan=3, sticky=tk.W + tk.E)
 
         # from password
@@ -1273,9 +1289,10 @@ class EmailerGUI(EmailPrompt):
         self.forge_from.set(1)
         self.forge_from_box = tk.Checkbutton(self.root, text="Forge sender",
                                              variable=self.forge_from,
+                                             command=self.handle_forge_from,
                                              **self.colors)
         self.forge_from_box.grid(row=11, column=4, sticky=tk.W)
-        
+
         # backscatter spam mode
         self.increase_backscatter = tk.IntVar()
         self.increase_backscatter.set(0)
