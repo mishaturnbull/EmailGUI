@@ -44,10 +44,24 @@ from email import encoders
 
 # %% config
 
+if sys.version_info.major == 3:
+    # use xrange if python 2 to speed things up
+    # in py3, range is what xrange was
+    # and in python 2, use raw_input to prevent input()'s hack-ability
+    BEST_RANGE = range  # pylint: disable=C0103
+    BEST_INPUT = input  # pylint: disable=C0103
+    FILE_NOT_FOUND = FileNotFoundError
+if sys.version_info.major == 2:
+    # this will never throw a NameError in py3 because the condition above
+    # is false, meaning this never executes
+    BEST_RANGE = xrange  # pylint: disable=E0602
+    BEST_INPUT = raw_input  # pylint: disable=E0602
+    FILE_NOT_FOUND = IOError
+
 try:
     with open("settings.json", 'r') as config:
         CONFIG = json.load(config)
-except FileNotFoundError as exc:
+except FILE_NOT_FOUND:
     sys.stderr.write("Couldn't find config file [settings.json]!")
     sys.exit(0)
 
@@ -58,7 +72,8 @@ CONFIG['text'] = '\n'.join(CONFIG['text'])
 # the SMTP response codes are indexed as strings due to JSON storage
 # requirements, so change those to integers
 for s in CONFIG['SMTP_resp_codes']:
-    CONFIG['SMTP_resp_codes'].update({int(s): CONFIG['SMTP_resp_codes'].pop(s)})
+    CONFIG['SMTP_resp_codes'].update({int(s):
+                                      CONFIG['SMTP_resp_codes'].pop(s)})
 
 MAX_RESP_LEN = max([len(CONFIG['SMTP_resp_codes'][i]) for i in
                     CONFIG['SMTP_resp_codes']])
@@ -146,17 +161,6 @@ if not args.NOGUI:
         assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
                        not something I designed this program to be used with.'
 
-# use xrange if python 2 to speed things up
-# in py3, range is what xrange was
-# and in python 2, use raw_input to prevent input()'s hack-ability
-BEST_RANGE = range  # pylint: disable=C0103
-BEST_INPUT = input  # pylint: disable=C0103
-if sys.version_info.major == 2:
-    # this will never throw a NameError in py3 because the condition above
-    # is false, meaning this never executes
-    BEST_RANGE = xrange  # pylint: disable=E0602
-    BEST_INPUT = raw_input  # pylint: disable=E0602
-
 
 class FakeSTDOUT(object):
     '''Pretend to be sys.stdout, but write everything to a log AND
@@ -220,7 +224,7 @@ try:
                                          TEXT=CONFIG['text'],
                                          ATTACH=CONFIG['attach'])
 
-except FileNotFoundError as exc:
+except FILE_NOT_FOUND as exc:
     sys.stderr.write("Couldn't find necessary template file" +
                      " [{}]".format(exc.filename))
     sys.exit(0)
@@ -327,6 +331,7 @@ def verify_to_email(address, serv, frm, pwd):
     resp = server.rcpt(address)
     server.quit()
     return resp
+
 
 # %% multithreading!
 class EmailSendHandler(threading.Thread):
@@ -491,7 +496,8 @@ class EmailSendHandler(threading.Thread):
         # system over to an airgapped network.  I can dream.
 
     def sent_another_one(self):
-        '''Call this exactly once per email sent.  For updating progress bar.'''
+        '''Call this exactly once per email sent.
+           For updating progress bar.'''
         self.n_sent += 1
 
         if self._handler is not None:
@@ -508,6 +514,7 @@ class EmailSendHandler(threading.Thread):
                 self._handler.button_abort["text"] = "Reset"
 
                 messagebox.showinfo(CONFIG['title'], "Sending complete!")
+
 
 class EmailSender(threading.Thread):
     '''Class to do the dirty work of sending emails.'''
@@ -798,10 +805,10 @@ class EmailerGUI(EmailPrompt):
     '''Make things easier to use, and prettier.'''
 
     colors = {"background": CONFIG['colors']['bg'],
-             }
+              }
     buttons = {"background": CONFIG['colors']['buttons'],
                "activebackground": CONFIG['colors']['bg'],
-              }
+               }
 
     def __init__(self):
         '''Start the class, and make stuff happen.'''
@@ -935,7 +942,8 @@ class EmailerGUI(EmailPrompt):
         # we want the lists to have the same length as self.frm -- the user
         # could have 2 or more accounts with the same address and server
         # this way, we assume if less passwords and/or servers are given
-        # that we populate the rest of the lists with clones of the last element
+        # that we populate the rest of the lists with clones of the last
+        # element
         if len(self.server) < len(self.frm):
             self.server += [self.server[-1]] * (len(self.frm) -
                                                 len(self.server))
@@ -1248,7 +1256,6 @@ class EmailerGUI(EmailPrompt):
                                              variable=self.forge_from,
                                              **self.colors)
         self.forge_from_box.grid(row=11, column=4, sticky=tk.W)
-
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
