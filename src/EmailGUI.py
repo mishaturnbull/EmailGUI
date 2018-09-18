@@ -50,7 +50,7 @@ if sys.version_info.major == 3:
     # and in python 2, use raw_input to prevent input()'s hack-ability
     BEST_RANGE = range  # pylint: disable=C0103
     BEST_INPUT = input  # pylint: disable=C0103
-    FILE_NOT_FOUND = FileNotFoundError
+    FILE_NOT_FOUND = FileNotFoundError  
 if sys.version_info.major == 2:
     # this will never throw a NameError in py3 because the condition above
     # is false, meaning this never executes
