@@ -892,18 +892,33 @@ class EmailerGUI(EmailPrompt):
         elif suggestion[0] == 'none':
             self.entry_delay.delete(0, 'end')  # clear field
             self.entry_delay.insert(0, str(suggestion[1]))  # insert suggestion
+    
+    def handler_backscatter(self):
+        '''Handle the 'Increase Backscatter' checkbox state-change.'''
+        is_backscattering = bool(self.increase_backscatter.get())
+        
+        if CONFIG['debug']:
+            print("Handling backscatter mode change to {}".format(
+                    is_backscattering))
+        
+        if is_backscattering:
+            self.entry_df.config(textvariable=self.recipient_addresses,
+                                 state='disabled')
+        else:
+            self.entry_df.config(textvariable=self.display_from,
+                                 state='normal')
 
     def create_msg_config(self):
         '''Create the necessary attributes to create a message.
            Raises EmailSendError if something important is missing.'''
         self.server = self.entry_server.get()
         self.frm = self.entry_from.get()
-        self.display_from = self.entry_df.get()
+        self.display_from = self.display_from.get()
         self.password = self.entry_password.get() or args.PASSWORD
         self.text = self.entry_text.get()
         self.subject = self.entry_subject.get()
         self.amount = int(self.entry_amount.get())
-        self.rcpt = self.entry_to.get()
+        self.rcpt = self.recipient_addresses.get()
         mt_mode = self.query_multithreading.get()
         mt_num = int(self.n_threads.get())
         conmode = self.query_conmode.get()
@@ -1128,9 +1143,11 @@ class EmailerGUI(EmailPrompt):
         self.entry_from.insert(0, CONFIG['from'])
 
         # display from
-        self.entry_df = tk.Entry(self.root, width=int(width/3))
+        self.display_from = tk.StringVar()
+        self.display_from.set(CONFIG['display_from'])
+        self.entry_df = tk.Entry(self.root, width=int(width/3),
+                                 textvariable=self.display_from)
         self.entry_df.grid(row=3, column=7, columnspan=3, sticky=tk.W + tk.E)
-        self.entry_df.insert(0, CONFIG['display_from'])
 
         # from password
         self.label_password = tk.Label(self.root, text='Password: ',
@@ -1148,9 +1165,11 @@ class EmailerGUI(EmailPrompt):
         self.label_to = tk.Label(self.root, text='To: ',
                                  **self.colors)
         self.label_to.grid(row=5, column=0, sticky=tk.W)
-        self.entry_to = tk.Entry(self.root, width=width)
+        self.recipient_addresses = tk.StringVar()
+        self.recipient_addresses.set(CONFIG['to'])
+        self.entry_to = tk.Entry(self.root, width=width,
+                                 textvariable=self.recipient_addresses)
         self.entry_to.grid(row=5, column=2, columnspan=8)
-        self.entry_to.insert(0, CONFIG['to'])
 
         # check email
         self.button_vrfy = tk.Button(self.root, text='Verify',
@@ -1256,6 +1275,17 @@ class EmailerGUI(EmailPrompt):
                                              variable=self.forge_from,
                                              **self.colors)
         self.forge_from_box.grid(row=11, column=4, sticky=tk.W)
+        
+        # backscatter spam mode
+        self.increase_backscatter = tk.IntVar()
+        self.increase_backscatter.set(0)
+        self.backscatter_box = \
+            tk.Checkbutton(self.root,
+                           text="Increase backscatter",
+                           variable=self.increase_backscatter,
+                           command=self.handler_backscatter,
+                           **self.colors)
+        self.backscatter_box.grid(row=12, column=4, sticky=tk.W)
 
         def browse_file():
             '''Helper to display a file picker and insert the result in the
