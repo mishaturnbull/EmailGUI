@@ -507,7 +507,7 @@ class EmailSendHandler(threading.Thread):
 
         # if we're done, and have a handler...
         # change abort button to reset and switch the handler functions
-        if self.n_sent >= self["amount"] or self.is_done:
+        if self.n_sent >= self["amount"] and not self.is_done:
             self.is_done = True
 
             if self._handler is not None:
@@ -918,9 +918,11 @@ class EmailerGUI(EmailPrompt):
                     is_backscattering))
 
         if is_backscattering:
+            self._display_from_prev = self.display_from_content.get()
             self.entry_df.config(textvariable=self.recipient_addresses,
                                  state='disabled')
         else:
+            self.display_from_content.set(self._display_from_prev)
             self.entry_df.config(textvariable=self.display_from_content,
                                  state='normal')
 
