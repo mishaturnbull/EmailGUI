@@ -22,213 +22,12 @@ from __future__ import (division, print_function, generators, absolute_import)
 
 # %% imports and constants
 
-import argparse
-import sys
+from prereqs import *
+
 import platform
 import time
-import smtplib
-import os
-import json
 import threading
 import copy
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
-from email import encoders
-
-# yeah, Tkinter imports are missing.
-# they're conditionally imported in the conditional imports section further
-# down after the arguments  so they aren't loaded if we run in nogui mode and
-# they arent needed.
-
-# %% config
-
-if sys.version_info.major == 3:
-    # use xrange if python 2 to speed things up
-    # in py3, range is what xrange was
-    # and in python 2, use raw_input to prevent input()'s hack-ability
-    BEST_RANGE = range  # pylint: disable=C0103
-    BEST_INPUT = input  # pylint: disable=C0103
-    FILE_NOT_FOUND = FileNotFoundError
-if sys.version_info.major == 2:
-    # this will never throw a NameError in py3 because the condition above
-    # is false, meaning this never executes
-    BEST_RANGE = xrange  # pylint: disable=E0602
-    BEST_INPUT = raw_input  # pylint: disable=E0602
-    FILE_NOT_FOUND = IOError
-
-try:
-    with open("settings.json", 'r') as config:
-        CONFIG = json.load(config)
-except FILE_NOT_FOUND:
-    sys.stderr.write("Couldn't find config file [settings.json]!")
-    sys.exit(0)
-
-# We need to join the message on newlines because it's stored in JSON
-# as an array of strings
-CONFIG['text'] = '\n'.join(CONFIG['text'])
-
-# the SMTP response codes are indexed as strings due to JSON storage
-# requirements, so change those to integers
-for s in CONFIG['SMTP_resp_codes']:
-    CONFIG['SMTP_resp_codes'].update({int(s):
-                                      CONFIG['SMTP_resp_codes'].pop(s)})
-
-MAX_RESP_LEN = max([len(CONFIG['SMTP_resp_codes'][i]) for i in
-                    CONFIG['SMTP_resp_codes']])
-
-
-# %% Parse arguments
-
-# pylint complains about invalid constant names, but I argue that "parser" and
-# "args" aren't constants but are used as main script which must be created
-# outside of a main() function
-
-# i shan't hear it
-# pylint: disable=C0103
-parser = argparse.ArgumentParser(description="Send emails like a pro.",
-                                 prefix_chars='/-',
-                                 fromfile_prefix_chars='')
-parser.add_argument('-p', '--nogui', dest='NOGUI', action='store_const',
-                    const=True, default=False,
-                    help='specify to run without a GUI')
-parser.add_argument('-d', '--debug', dest='DEBUG', action='store_const',
-                    const=True, default=False,
-                    help='output program debugging info')
-parser.add_argument('-c', '--commandline', dest='COMMANDLINE',
-                    action='store_const', const=True, default=False,
-                    help='pass parameters as arguments to command')
-parser.add_argument('--amount', nargs=1, dest='AMOUNT',
-                    type=int, required=False, default=CONFIG['amount'],
-                    help='amount of emails to send')
-parser.add_argument('--rcpt', nargs=1, dest='RCPT',
-                    type=str, required=False, default=CONFIG['to'],
-                    help='unlucky recipient of emails')
-parser.add_argument('--from', nargs=1, dest='FROM',
-                    type=str, required=False, default=CONFIG['from'],
-                    help='your (sender\'s) email address')
-parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
-                    type=str, required=False,
-                    help='your (sender\'s) email password')
-parser.add_argument('--server', nargs=1, dest='SERVER',
-                    type=str, required=False, default=CONFIG['server'],
-                    help='smtp server to send emails from')
-parser.add_argument('--max-retries', nargs=1, dest='MAX_RETRIES',
-                    type=int, required=False, default=CONFIG['max_retries'],
-                    help='the maximum number of times the program will'
-                         ' attempt to reconnect to the server if ocnnection'
-                         ' is lost')
-args = parser.parse_args()
-
-if isinstance(args.AMOUNT, list):
-    # this happens sometimes
-    CONFIG['amount'] = args.AMOUNT[0]
-else:
-    CONFIG['amount'] = args.AMOUNT
-CONFIG['to'] = args.RCPT
-CONFIG['from'] = args.FROM
-CONFIG['server'] = args.SERVER
-CONFIG['max_retries'] = args.MAX_RETRIES
-CONFIG['debug'] = args.DEBUG or CONFIG['debug']
-
-# %% conditional import/setup
-
-if not args.NOGUI:
-    # pylint: disable=C0413
-    #  we should only really import tkinter if we need it, it's a big
-    #  module and some users may be on platforms that don't support it
-    # if so, trying to import it will make things come to a quick halt so
-    #  we only import it if we actually need it -- for a GUI
-    if sys.version_info.major == 3:
-        import tkinter as tk
-        import tkinter.messagebox as messagebox
-        import tkinter.filedialog as filedialog
-        import tkinter.scrolledtext as scrolledtext
-        from tkinter import ttk
-    elif sys.version_info.major == 2:
-        # pylint: disable=E0401
-        # pylint complains about not finding tkMessageBox etc
-        #  when run using python 3, because this stuff is for python 2
-        #  but this block will never be executed in py3, and therefore
-        #  will never throw an error
-        import Tkinter as tk
-        import tkMessageBox as messagebox
-        import tkFileDialog as filedialog
-        import ScrolledText as scrolledtext
-        import ttk
-    else:
-        assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
-                       not something I designed this program to be used with.'
-
-
-class FakeSTDOUT(object):
-    '''Pretend to be sys.stdout, but write everything to a log AND
-    the actual sys.stdout.'''
-
-    def __init__(self, stream, filename):
-        self.terminal = stream
-        self.log = open(filename, 'w')
-        self._filename = filename
-
-        self.is_empty = True
-
-    def write(self, message):
-        '''Impersonate sys.stdout.write()'''
-        self.terminal.write(message)
-        self.log.write(message)
-
-        self.is_empty = False
-
-    def flush(self):
-        '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
-        self.terminal.flush()
-
-    def FSO_close(self):
-        '''Close the log files.'''
-        self.log.close()
-
-        if not self.is_empty and not CONFIG['debug']:
-            os.remove(self._filename)
-
-        return self.terminal
-
-
-class EmailSendError(Exception):
-    '''Exception class for exceptions raised within EmailGUI.'''
-    pass
-
-
-class EmergencyStop(Exception):
-    '''Specifically to be raised when the abort button is pressed.'''
-    pass
-
-
-# these are the error classes that should raise a popup box presented to the
-# user.  others either should never happen or should be silenced and handled
-# internally.
-POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
-                smtplib.SMTPDataError,
-                EmailSendError]
-
-# %% Tempfiles
-
-try:
-
-    with open("GUI_DOC.template", 'r') as template:
-        GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
-                                         SUBJECT=CONFIG['subject'],
-                                         FROM=CONFIG['from'],
-                                         TO=CONFIG['to'],
-                                         SERVER=CONFIG['server'],
-                                         TEXT=CONFIG['text'],
-                                         ATTACH=CONFIG['attach'])
-
-except FILE_NOT_FOUND as exc:
-    sys.stderr.write("Couldn't find necessary template file" +
-                     " [{}]".format(exc.filename))
-    sys.exit(0)
-
 
 # %% Helper functions
 
@@ -816,6 +615,8 @@ class EmailerGUI(EmailPrompt):
         self.root = tk.Tk()
         self.init_gui()
 
+        self._display_from_prev = ""
+
         self.root.protocol('WM_DELETE_WINDOW', self.exit)
 
         # self.root.mainloop needs to be called sometimes - but not always?
@@ -1161,6 +962,7 @@ class EmailerGUI(EmailPrompt):
         self.entry_from.insert(0, CONFIG['from'])
 
         # display from
+        # XXX: soon to be moved to a separate display window for header tags
         self.display_from_content = tk.StringVar()
         self.display_from_content.set(CONFIG['display_from'])
         self.entry_df = tk.Entry(self.root, width=int(width/3),
