@@ -12,11 +12,6 @@ import sys
 import json
 import smtplib
 import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
-from email import encoders
 
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up

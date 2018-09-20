@@ -13,9 +13,13 @@ import time
 import smtplib
 import sys
 
-from prereqs import CONFIG, EmergencyStop, BEST_RANGE, \
-                    MIMEMultipart, MIMEBase, MIMEText, encoders, formatdate, \
-                    COMMASPACE, messagebox
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate
+from email import encoders
+
+from prereqs import CONFIG, EmergencyStop, BEST_RANGE, messagebox
 
 
 class EmailSendHandler(threading.Thread):
