@@ -13,6 +13,8 @@ import json
 import smtplib
 import os
 
+from helpers import suggest_thread_amt
+
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
     # in py3, range is what xrange was
@@ -91,6 +93,7 @@ CONFIG['from'] = args.FROM
 CONFIG['server'] = args.SERVER
 CONFIG['max_retries'] = args.MAX_RETRIES
 CONFIG['debug'] = args.DEBUG or CONFIG['debug']
+CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
 
 
 class FakeSTDOUT(object):
@@ -143,7 +146,6 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
                 EmailSendError]
 
 try:
-
     with open("GUI_DOC.template", 'r') as template:
         GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
                                          SUBJECT=CONFIG['subject'],

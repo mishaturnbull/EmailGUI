@@ -26,6 +26,13 @@ import smtplib
 import platform
 import sys
 
+from prereqs import CONFIG, args, FakeSTDOUT, POPUP_ERRORS, GUI_DOC, \
+                    MAX_RESP_LEN, EmailSendError
+
+from helpers import suggest_thread_amt, verify_to, verify_to_email
+
+from uibase import EmailPrompt
+
 if sys.version_info.major == 3:
     import tkinter as tk
     import tkinter.messagebox as messagebox
@@ -43,15 +50,6 @@ elif sys.version_info.major == 2:
     import tkFileDialog as filedialog
     import ScrolledText as scrolledtext
     import ttk
-
-from prereqs import CONFIG, args, FakeSTDOUT, POPUP_ERRORS, GUI_DOC, \
-                    MAX_RESP_LEN, EmailSendError
-
-from helpers import suggest_thread_amt, verify_to, verify_to_email
-
-from uibase import EmailPrompt
-
-CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
 
 
 class EmailerGUI(EmailPrompt):

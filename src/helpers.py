@@ -3,7 +3,7 @@
 Contains 'simpler' helper functions that don't depend on other functionality.
 """
 
-from prereqs import smtplib
+import smtplib
 
 def suggest_thread_amt(num_emails):
     '''Given a total number of emails to send `num_emails`, determine which
