@@ -19,7 +19,12 @@ from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 from email import encoders
 
-from prereqs import CONFIG, EmergencyStop, BEST_RANGE, messagebox
+if sys.version_info.major == 3:
+    import tkinter.messagebox as messagebox
+elif sys.version_info.major == 2:
+    import tkMessageBox as messagebox
+
+from prereqs import CONFIG, EmergencyStop, BEST_RANGE
 
 
 class EmailSendHandler(threading.Thread):

@@ -92,35 +92,6 @@ CONFIG['server'] = args.SERVER
 CONFIG['max_retries'] = args.MAX_RETRIES
 CONFIG['debug'] = args.DEBUG or CONFIG['debug']
 
-# %% conditional import/setup
-
-if not args.NOGUI:
-    # pylint: disable=C0413
-    #  we should only really import tkinter if we need it, it's a big
-    #  module and some users may be on platforms that don't support it
-    # if so, trying to import it will make things come to a quick halt so
-    #  we only import it if we actually need it -- for a GUI
-    if sys.version_info.major == 3:
-        import tkinter as tk
-        import tkinter.messagebox as messagebox
-        import tkinter.filedialog as filedialog
-        import tkinter.scrolledtext as scrolledtext
-        from tkinter import ttk
-    elif sys.version_info.major == 2:
-        # pylint: disable=E0401
-        # pylint complains about not finding tkMessageBox etc
-        #  when run using python 3, because this stuff is for python 2
-        #  but this block will never be executed in py3, and therefore
-        #  will never throw an error
-        import Tkinter as tk
-        import tkMessageBox as messagebox
-        import tkFileDialog as filedialog
-        import ScrolledText as scrolledtext
-        import ttk
-    else:
-        assert False, 'Sorry, I dunno what you\'re using but it\'s probably \
-                       not something I designed this program to be used with.'
-
 
 class FakeSTDOUT(object):
     '''Pretend to be sys.stdout, but write everything to a log AND

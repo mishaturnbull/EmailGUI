@@ -26,8 +26,25 @@ import smtplib
 import platform
 import sys
 
-from prereqs import CONFIG, tk, filedialog, ttk, scrolledtext, args, \
-                    messagebox, FakeSTDOUT, POPUP_ERRORS, GUI_DOC, \
+if sys.version_info.major == 3:
+    import tkinter as tk
+    import tkinter.messagebox as messagebox
+    import tkinter.filedialog as filedialog
+    import tkinter.scrolledtext as scrolledtext
+    from tkinter import ttk
+elif sys.version_info.major == 2:
+    # pylint: disable=E0401
+    # pylint complains about not finding tkMessageBox etc
+    #  when run using python 3, because this stuff is for python 2
+    #  but this block will never be executed in py3, and therefore
+    #  will never throw an error
+    import Tkinter as tk
+    import tkMessageBox as messagebox
+    import tkFileDialog as filedialog
+    import ScrolledText as scrolledtext
+    import ttk
+
+from prereqs import CONFIG, args, FakeSTDOUT, POPUP_ERRORS, GUI_DOC, \
                     MAX_RESP_LEN, EmailSendError
 
 from helpers import suggest_thread_amt, verify_to, verify_to_email
@@ -296,7 +313,8 @@ class EmailerGUI(EmailPrompt):
             elif resp == 252:
                 msg = str(resp) + " Server could not determine."
             else:
-                msg = str(resp) + "Address either invalid or unable to determine."
+                msg = str(resp) + "Address either invalid or " \
+                                  "unable to determine."
             label_vrfy_res.config(text=msg)
 
         def mail():
