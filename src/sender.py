@@ -33,7 +33,7 @@ class EmailSendHandler(threading.Thread):
         self._check_config()
 
         if self._handler is not None:
-            self._handler.progress_bar["maximum"] = self["amount"]
+            self._handler['bar_progress']["maximum"] = self["amount"]
 
         self.do_abort = False
         self.is_done = False
@@ -189,8 +189,8 @@ class EmailSendHandler(threading.Thread):
         self.n_sent += 1
 
         if self._handler is not None:
-            self._handler.progress_bar["value"] = self.n_sent
-            self._handler.progress_label.config(text="Sent: {} / {}".format(
+            self._handler['bar_progress']["value"] = self.n_sent
+            self._handler['label_progress'].config(text="Sent: {} / {}".format(
                 str(self.n_sent), str(self["amount"])))
 
         # if we're done, and have a handler...
@@ -199,7 +199,7 @@ class EmailSendHandler(threading.Thread):
             self.is_done = True
 
             if self._handler is not None:
-                self._handler.button_abort["text"] = "Reset"
+                self._handler['button_abort']["text"] = "Reset"
 
                 messagebox.showinfo(CONFIG['title'], "Sending complete!")
 
