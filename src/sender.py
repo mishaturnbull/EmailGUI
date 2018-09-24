@@ -14,6 +14,134 @@ import sys
 from prereqs import EmergencyStop
 
 
+class EmailSendHandler(threading.Thread):
+    """
+    This class is responsible for managing multiple worker threads to
+    send a given number of emails.
+    """
+
+    def __init__(self, coordinator):
+        """
+        Instantiate the EmailSendHandler object.
+
+        :coordinator: Must be a Coordinator object.
+        """
+        super(EmailSendHandler, self).__init__()
+
+        self.coordinator = coordinator
+
+        self.worker_amounts = []
+        self.workers = []
+        self.n_sent = 0
+
+        self.is_done = self.do_abort = False
+
+    def create_worker_configurations(self):
+        """
+        Creates the list of number of emails per thread for each thread using
+        the specified threading settings.
+        """
+
+        if self.coordinator.settings['mt_mode'] == 'none':
+            num_threads = 1
+        elif self.coordinator.settings['mt_mode'] == 'limited':
+            num_threads = self.coordinator.settings['mt_num']
+        elif self.coordinator.settings['mt_mode'] == 'unlimited':
+            num_threads = self.coordinator.settings['amount']
+
+        emails_per_thread = self.coordinator.settings['amount'] // num_threads
+
+        # split the load evenly among all threads
+        self.worker_amounts = [emails_per_thread] * num_threads
+
+        # check that the total count still equals the requested number,
+        # which can happen on, for example:
+        # amount = 100
+        # n_threads = 14
+        # the above code will split the load into 14 threads, sending
+        # 7 emails per.  7*14 = 98, which is not the desired 100.
+        sending = sum(emails_per_thread)
+        if sending != self.coordinator.settings['amount']:
+            # deal with this case by adding 1 to as many
+            # threads as we are short emails.  In the above case,
+            # this turns
+            # worker_amounts = [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
+            # into
+            # worker_amounts = [8, 8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
+            n_increases = self.coordinator.settings['amount'] - sending
+            for i in range(n_increases):
+                self.worker_amounts[i] = self.worker_amounts[i] + 1
+
+    def get_amount(self, worker_index):
+        """
+        Returns how many emails a specified worker thread is required to
+        send.
+        """
+        return self.worker_amounts[worker_index]
+
+    def spawn_worker_threads(self):
+        """
+        Create the required number of worker threads.
+        """
+        for i in range(len(self.worker_amounts)):
+            worker = EmailSender(self, i)
+
+            # faster to concat than format, per timeit
+            worker.name = "Thread #" + str(i)
+
+            # add to the list
+            self.workers.append(worker)
+
+    def start_workers(self):
+        """Start all the worker threads sending emails."""
+
+        for worker in self.workers:
+            worker.start()
+
+    def run(self):
+        """
+        Start the manager thread.
+        Automatically generates sending distribution, worker threads, and
+        runs the workers.
+        """
+        self.create_worker_configurations()
+        self.spawn_worker_threads()
+        self.start_workers()
+
+        while not self.is_done:
+            for worker in self.workers:
+                if worker.is_done:
+                    worker.join()
+                    self.workers.remove(worker)
+
+            if not self.workers:
+                self.is_done = True
+
+    def abort(self):
+        """
+        Send the abort signal to all worker threads and attempt to halt
+        the further sending of emails.
+        """
+
+        self.do_abort = True
+
+        for worker in self.workers:
+            worker.do_abort = True
+
+    def callback_sent(self):
+        """
+        Takes action when each email is sent.  Mainly reports upwards to
+        the coordinator for updating progress information.
+        """
+
+        self.coordinator.callback_sent()
+
+        self.n_sent += 1
+
+        if self.n_sent == self.coordinator.settings['amount']:
+            self.is_done = True
+
+
 class EmailSender(threading.Thread):
     """
     This class is responsible for sending a given amount of emails in a
@@ -34,7 +162,7 @@ class EmailSender(threading.Thread):
         self.worker_index = worker_index
         self.amount = self.handler.get_amount(self.worker_index)
 
-        self.do_abort = self.is_done = False
+        self.is_done = False
         self.n_sent = 0
 
         self.message_text = self.handler.coordinator.email.as_string()
@@ -76,7 +204,7 @@ class EmailSender(threading.Thread):
 
             for i in range(sending):
 
-                if self.do_abort:
+                if self.handler.do_abort:
                     raise EmergencyStop("Aborting")
 
                 if self.handler.settings['con_mode'] == 'con_per':
