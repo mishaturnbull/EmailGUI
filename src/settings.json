@@ -1,32 +1,37 @@
 {
-    "from": "",
-    "to": "",
-    "server": "",
-    "subject": "Apology",
-    "attach": "",
-    "multithread": null,
-    "title": "SpamBotFromHell",
-    "debug": true,
-    "delay": 0,
-    "max_retries": 5,
-    "display_from": "spammer@spam.com",
-    "text": [
-        "Dear recipient,",
-        "I am writing to apologize for incessantly writing you emails.  It",
-        "must be tiresome to spend all day deleting them.",
-        "",
-        "P.S. Please forgive me for sending this email.  I shall immediately",
-        "dispatch a second email in apology."
-    ],
-    "amount": 10,
-    "log_stdout": "Email_Log.out",
-    "log_stderr": "Email_Log_Err.out",
-    "con_per": false,
-    "confirmation_msg": [
-        "Are you certain you wish to proceed?",
-        "This cannot reliably be undone and can have unfortunate results!"
-    ],
-    "width": 100,
+    "content": {
+        "from": "",
+        "to": "",
+        "subject": "Apology",
+        "attach": "",
+        "text": [
+            "Dear recipient,",
+            "I am writing to apologize for incessantly writing you emails.  It",
+            "must be tiresome to spend all day deleting them.",
+            "",
+            "P.S. Please forgive me for sending this email.  I shall immediately",
+            "dispatch a second email in apology."
+        ]
+    },
+    "settings": {
+        "server": "",
+        "multithread": null,
+        "title": "SpamBotFromHell",
+        "debug": true,
+        "delay": 0,
+        "max_retries": 5,
+        "display_from": "spammer@spam.com",
+    
+        "amount": 10,
+        "log_stdout": "Email_Log.out",
+        "log_stderr": "Email_Log_Err.out",
+        "con_per": false,
+        "confirmation_msg": [
+            "Are you certain you wish to proceed?",
+            "This cannot reliably be undone and can have unfortunate results!"
+        ],
+        "width": 100
+    },
     "SMTP_resp_codes": {
         "200": "Nonstandard success response",
         "211": "System status, or system help reply",
