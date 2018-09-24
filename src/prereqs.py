@@ -38,7 +38,7 @@ except FILE_NOT_FOUND:
 
 # We need to join the message on newlines because it's stored in JSON
 # as an array of strings
-CONFIG['content']['text'] = '\n'.join(CONFIG['content']['text'])
+CONFIG['contents']['text'] = '\n'.join(CONFIG['contents']['text'])
 
 # the SMTP response codes are indexed as strings due to JSON storage
 # requirements, so change those to integers
@@ -66,11 +66,11 @@ parser.add_argument('--amount', nargs=1, dest='AMOUNT',
                     default=CONFIG['settings']['amount'],
                     help='amount of emails to send')
 parser.add_argument('--rcpt', nargs=1, dest='RCPT',
-                    type=str, required=False, default=CONFIG['content']['to'],
+                    type=str, required=False, default=CONFIG['contents']['to'],
                     help='unlucky recipient of emails')
 parser.add_argument('--from', nargs=1, dest='FROM',
                     type=str, required=False,
-                    default=CONFIG['content']['from'],
+                    default=CONFIG['contents']['from'],
                     help='your (sender\'s) email address')
 parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
                     type=str, required=False,
@@ -92,8 +92,8 @@ if isinstance(args.AMOUNT, list):
     CONFIG['settings']['amount'] = args.AMOUNT[0]
 else:
     CONFIG['settings']['amount'] = args.AMOUNT
-CONFIG['content']['to'] = args.RCPT
-CONFIG['content']['from'] = args.FROM
+CONFIG['contents']['to'] = args.RCPT
+CONFIG['contents']['from'] = args.FROM
 CONFIG['settings']['server'] = args.SERVER
 CONFIG['settings']['max_retries'] = args.MAX_RETRIES
 CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
@@ -153,12 +153,12 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 try:
     with open("GUI_DOC.template", 'r') as template:
         GUI_DOC = template.read().format(AMOUNT=CONFIG['settings']['amount'],
-                                         SUBJECT=CONFIG['content']['subject'],
-                                         FROM=CONFIG['content']['from'],
-                                         TO=CONFIG['content']['to'],
+                                         SUBJECT=CONFIG['contents']['subject'],
+                                         FROM=CONFIG['contents']['from'],
+                                         TO=CONFIG['contents']['to'],
                                          SERVER=CONFIG['settings']['server'],
-                                         TEXT=CONFIG['content']['text'],
-                                         ATTACH=CONFIG['content']['attach'])
+                                         TEXT=CONFIG['contents']['text'],
+                                         ATTACH=CONFIG['contents']['attach'])
 
 except FILE_NOT_FOUND as exc:
     print("Couldn't find necessary template file" +

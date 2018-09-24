@@ -1,5 +1,5 @@
 {
-    "content": {
+    "contents": {
         "from": "",
         "to": "",
         "subject": "Apology",
@@ -30,7 +30,11 @@
             "Are you certain you wish to proceed?",
             "This cannot reliably be undone and can have unfortunate results!"
         ],
-        "width": 100
+        "width": 100,
+        "colors": {
+            "bg": "#C0C0C0",
+            "buttons": "#b3c2d8"
+        }
     },
     "SMTP_resp_codes": {
         "200": "Nonstandard success response",
@@ -58,9 +62,5 @@
         "552": "Request mail action aborted: exceeded storage allocation",
         "553": "Requested action not taken: mailbox name not allowed",
         "554": "Transaction failed"
-    },
-    "colors": {
-        "bg": "#C0C0C0",
-        "buttons": "#b3c2d8"
     }
 }
