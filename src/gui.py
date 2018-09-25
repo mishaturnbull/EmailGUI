@@ -45,44 +45,6 @@ elif sys.version_info.major == 2:
     import ttk
 
 
-_CALLBACKS = []
-
-
-def handle_verify(coordinator):
-    """Spawn the verification window and handle the attempts to verify an
-    address."""
-    root = coordinator.gui.root
-    vmen = tk.Toplevel(root)
-    vmen.config(**coordinator.gui.colors)
-    vmen.title("Email Verification")
-    # TODO: finish verify menu
-_CALLBACKS.append(handle_verify)
-
-
-def handle_abort(coordinator):
-    """Deal with an abort button call."""
-    coordinator.sender.abort()
-_CALLBACKS.append(handle_abort)
-
-
-def handle_browse(coordinator):
-    """Handle a request to browse the filesystem."""
-    filename = filedialog.askopenfilename()
-    var = coordinator.gui.variables['attachments']
-    if var.get() == '':
-        var.set(filename)
-    else:
-        var.set(var.get() + "," + filename)
-_CALLBACKS.append(handle_browse)
-
-
-def register_handlers(coordinator):
-    """Register all the handlers defined into the Coordinator's list."""
-    for cb in _CALLBACKS:
-        cbname = cb.__name__.split('_')[1]
-        coordinator.register_callback(cbname, cb)
-
-
 class EmailGUI(object):
     '''Make things easier to use, and prettier.'''
 
@@ -91,7 +53,6 @@ class EmailGUI(object):
         '''Start the class, and make stuff happen.'''
 
         self.coordinator = coordinator
-        register_handlers(self.coordinator)
         self.root = tk.Tk()
 
         self.variables = {}
@@ -264,8 +225,31 @@ class EmailGUI(object):
         self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
         self._add_entry('max_retries', width=2, row=10, column=5, sticky=tk.W)
 
-
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the
         window."""
-        pass
+        menu = tk.Menu(self.root)
+
+        menu_email = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label='Email', menu=menu_email)
+
+        menu_email.add_command(label="Send",
+                               command=self.coordinator.callbacks['send'])
+        menu_email.add_command(label="Edit headers",
+                               command=self.coordinator.callbacks['headers'])
+
+        menu_settings = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label='Settings', menu=menu_settings)
+
+        menu_settings.add_command(label="Auto-select multithreading",
+            command=self.coordinator.callbacks['autoselectmt'])
+
+        menu_help = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label='Help', menu=menu_help)
+
+        menu_help.add_command(label="Brief help",
+                              command=self.coordinator.callbacks['quickhelp'])
+        menu_help.add_command(label="In-depth documentation (online)",
+                              command=self.coordinator.callbacks['deephelp'])
+
+        self.root.config(menu=menu)
