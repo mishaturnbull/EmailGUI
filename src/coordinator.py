@@ -51,8 +51,13 @@ class Coordinator(object):
     
             self.callbacks.update({cbname: wrapit(cb)})
     
+    def retrieve_data_from_uis(self):
+        """Get all the data from various UI elements."""
+        self.gui.dump_values_to_coordinator()
+    
     def send(self):
         """Send emails as configured."""
+        self.retrieve_data_from_uis()
         self.sender.run()
 
 

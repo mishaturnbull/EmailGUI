@@ -67,6 +67,24 @@ class EmailGUI(object):
                         }
 
         self.entry_width = self.coordinator.settings['width']
+    
+    def dump_values_to_coordinator(self):
+        """Sends over all the information needed for a successful email."""
+        for v in self.variables:
+            if v in self.coordinator.settings:
+                d = self.coordinator.settings
+            elif v in self.coordinator.contents:
+                d = self.coordinator.contents
+            
+            try:
+                val = float(self.variables[v].get())
+            except (ValueError, TypeError):
+                try:
+                    val = int(self.variables[v].get())
+                except (ValueError, TypeError):
+                    val = self.variables[v].get()
+            
+            d[v] = val
 
     def _add_label(self, text, label_opts=None, **grids):
         """Adds a tk.Label element to the root window and grids it

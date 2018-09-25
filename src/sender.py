@@ -60,7 +60,7 @@ class EmailSendHandler(threading.Thread):
         # n_threads = 14
         # the above code will split the load into 14 threads, sending
         # 7 emails per.  7*14 = 98, which is not the desired 100.
-        sending = sum(emails_per_thread)
+        sending = sum(self.worker_amounts)
         if sending != self.coordinator.settings['amount']:
             # deal with this case by adding 1 to as many
             # threads as we are short emails.  In the above case,
@@ -170,7 +170,7 @@ class EmailSender(threading.Thread):
     def establish_connection(self):
         """Establish a connection to the server specified in
         the handler's settings dictionary.  Returns an smtplib.SMTP object."""
-        server = smtplib.SMTP(self.handler.settings['server'])
+        server = smtplib.SMTP(self.handler.coordinator.settings['server'])
         server.ehlo_or_helo_if_needed()
 
         if server.has_extn("starttls"):
@@ -178,8 +178,8 @@ class EmailSender(threading.Thread):
             server.ehlo()
 
         if server.has_extn("auth"):
-            server.login(self.handler.settings['from'],
-                         self.handler.settings['password'])
+            server.login(self.handler.coordinator.settings['from'],
+                         self.handler.coordinator.settings['password'])
 
         if self.handler.coordinator.settings['debug']:
             server.set_debuglevel(1)
@@ -196,7 +196,8 @@ class EmailSender(threading.Thread):
 
         # preconfigure localized options for a reconnection case
         sending = remaining or self.amount
-        retries_left = retries_left or self.handler.settings['max_retries']
+        retries_left = retries_left or \
+                       self.handler.coordinator.settings['max_retries']
 
         try:
 
@@ -207,7 +208,7 @@ class EmailSender(threading.Thread):
                 if self.handler.do_abort:
                     raise EmergencyStop("Aborting")
 
-                if self.handler.settings['con_mode'] == 'con_per':
+                if self.handler.coordinator.settings['con_mode'] == 'con_per':
                     server.quit()
                     server = self.establish_connection()
 
@@ -215,8 +216,8 @@ class EmailSender(threading.Thread):
                     print("Sending {} at {}".format(str(i),
                                                     str(time.time())))
 
-                server.sendmail(self.handler.settings['from'],
-                                self.handler.settings['to'],
+                server.sendmail(self.handler.coordinator.settings['from'],
+                                self.handler.coordinator.settings['to'],
                                 self.message_text)
 
                 self.handler.callback_sent()
@@ -225,8 +226,8 @@ class EmailSender(threading.Thread):
                 # this if-statement is much faster than
                 # simply doing time.sleep(delay) when delay = 0.
                 # difference is 0.017 to 0.43 seconds
-                if self.handler.settings['delay'] != 0:
-                    time.sleep(self.handler.settings['delay'])
+                if self.handler.coordinator.settings['delay'] != 0:
+                    time.sleep(self.handler.coordinator.settings['delay'])
 
             server.quit()
 
@@ -242,7 +243,7 @@ class EmailSender(threading.Thread):
             else:
                 raise
         except EmergencyStop:
-            if self.handler.settings['con_mode'] != 'con_per':
+            if self.handler.coordinator.settings['con_mode'] != 'con_per':
                 server.quit()
         finally:
             self.is_done = True
