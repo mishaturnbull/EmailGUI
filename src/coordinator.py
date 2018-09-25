@@ -46,5 +46,5 @@ class Coordinator(object):
 
 if __name__ == '__main__':
     C = Coordinator()
-    C.gui.spawn_gui_elements()
+    C.gui.spawn_gui()
     C.gui.root.mainloop()

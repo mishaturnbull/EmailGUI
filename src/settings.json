@@ -15,7 +15,7 @@
     },
     "settings": {
         "server": "",
-        "multithread": null,
+        "mt_mode": "none",
         "title": "SpamBotFromHell",
         "debug": true,
         "delay": 0,
@@ -25,7 +25,7 @@
         "amount": 10,
         "log_stdout": "Email_Log.out",
         "log_stderr": "Email_Log_Err.out",
-        "con_per": false,
+        "con_mode": "con_once",
         "confirmation_msg": [
             "Are you certain you wish to proceed?",
             "This cannot reliably be undone and can have unfortunate results!"

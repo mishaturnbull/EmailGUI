@@ -65,6 +65,17 @@ def handle_abort(coordinator):
 _CALLBACKS.append(handle_abort)
 
 
+def handle_browse(coordinator):
+    """Handle a request to browse the filesystem."""
+    filename = filedialog.askopenfilename()
+    var = coordinator.gui.variables['attachments']
+    if var.get() == '':
+        var.set(filename)
+    else:
+        var.set(var.get() + "," + filename)
+_CALLBACKS.append(handle_browse)
+
+
 def register_handlers(coordinator):
     """Register all the handlers defined into the Coordinator's list."""
     for cb in _CALLBACKS:
@@ -117,7 +128,7 @@ class EmailGUI(object):
         self.variables.update({varname: var})
         entry = tk.Entry(self.root, textvariable=var, **entry_opts)
         entry.grid(**grids)
-        
+
         # check for any default options under the varname
         if varname in self.coordinator.contents:
             var.set(self.coordinator.contents[varname])
@@ -133,7 +144,13 @@ class EmailGUI(object):
                         **btn_opts, **self.colors)
         btn.grid(**grids)
 
-    def spawn_gui_elements(self):
+    def spawn_gui(self):
+        """Spawn the entire GUI."""
+        self.spawn_gui_basics()
+        self.spawn_gui_settings()
+        self.spawn_gui_menubar()
+
+    def spawn_gui_basics(self):
         """Instantiate all the GUI elements.  Does not spawn the GUI."""
 
         # start with the window meta
@@ -142,42 +159,113 @@ class EmailGUI(object):
 
         # number of emails
         self._add_label("# Emails:", row=0, column=0, sticky=tk.W)
-        self._add_entry('amount', width=3, row=0, column=1, sticky=tk.W)
+        self._add_entry('amount', width=3, row=0, column=1, sticky=tk.W+tk.E)
 
         # to field
         self._add_label("Recipient(s):", row=1, column=0, sticky=tk.W)
         self._add_button("Verify", self.coordinator.callbacks['verify'],
                          row=1, column=1)
-        self._add_entry('to', row=1, column=2, columnspan=8, sticky=tk.W)
+        self._add_entry('to', row=1, column=2, columnspan=8,
+                        sticky=tk.W+tk.E)
 
         # from field
         self._add_label("Sender(s):", row=2, column=0, sticky=tk.W)
-        self._add_entry('account', row=2, column=1, columnspan=9, sticky=tk.W)
+        self._add_entry('account', row=2, column=1, columnspan=9,
+                        sticky=tk.W+tk.E)
 
         # password field
         self._add_label("Password(s):", row=3, column=0, sticky=tk.W)
         self._add_entry('password', entry_opts={'show': '*'},
-                        row=3, column=1, columnspan=9, sticky=tk.W)
+                        row=3, column=1, columnspan=9, sticky=tk.W+tk.E)
 
         # subject field
         self._add_label("Subject line:", row=4, column=0, sticky=tk.W)
-        self._add_entry('subject', row=4, column=1, columnspan=9, sticky=tk.W)
+        self._add_entry('subject', row=4, column=1, columnspan=9,
+                        sticky=tk.W+tk.E)
 
         # text field
         self._add_label("Email message:", row=5, column=0, sticky=tk.W)
-        self._add_entry('text', row=5, column=1, columnspan=9, sticky=tk.W)
+        self._add_entry('text', row=5, column=1, columnspan=9,
+                        sticky=tk.W+tk.E)
 
         # server
         self._add_label("Server:", row=6, column=0, sticky=tk.W)
-        self._add_entry('server', row=6, column=1, columnspan=9, sticky=tk.W)
+        self._add_entry('server', row=6, column=1, columnspan=9,
+                        sticky=tk.W+tk.E)
+
+        # attachments
+        self._add_label("Attachments:", row=7, column=0, sticky=tk.W)
+        self._add_button("Browse", self.coordinator.callbacks['browse'],
+                         row=7, column=1)
+        self._add_entry('attachments', row=7, column=2, columnspan=8,
+                        sticky=tk.W+tk.E)
 
         # progress bar
         # no helper function here :(
-        self._add_label("Progress:", row=7, column=0, sticky=tk.W)
+        self._add_label("Progress:", row=8, column=0, sticky=tk.W)
         self._add_button('Abort', self.coordinator.callbacks['abort'],
-                         row=7, column=1)
+                         row=8, column=1)
         self.variables.update({'progressbar': tk.IntVar()})
+        # pylint: disable=C0102
+        # "Blacklisted name 'bar'"
+        # In this case, 'bar' makes perfect sense and is not
+        # being used as in foo/bar/baz
         bar = ttk.Progressbar(self.root, orient='horizontal', length=564,
                               mode='determinate',
                               variable=self.variables['progressbar'])
-        bar.grid(row=7, column=2, columnspan=8, sticky=tk.W)
+        bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
+
+    def spawn_gui_settings(self):
+        """Spawn the lower-section GUI settings for multithreading, etc."""
+
+        self.variables.update({"mt_mode": tk.StringVar()})
+        self.variables['mt_mode'].set(self.coordinator.settings['mt_mode'])
+
+        self._add_label("Multithreading options:", row=9, column=0,
+                        columnspan=2)
+        rb_none = tk.Radiobutton(self.root, text="None",
+                                 variable=self.variables['mt_mode'],
+                                 value="none",
+                                 **self.colors)
+        rb_none.grid(row=10, column=0, sticky=tk.W)
+
+        rb_lim = tk.Radiobutton(self.root, text="Limited",
+                                variable=self.variables['mt_mode'],
+                                value='limited',
+                                **self.colors)
+        rb_lim.grid(row=11, column=0, sticky=tk.W)
+
+        rb_ulim = tk.Radiobutton(self.root, text="Unlimited",
+                                 variable=self.variables['mt_mode'],
+                                 value="unlimited",
+                                 **self.colors)
+        rb_ulim.grid(row=12, column=0, sticky=tk.W)
+
+        self._add_entry('delay', width=4, row=10, column=1, sticky=tk.W)
+        self._add_entry('mt_num', width=4, row=11, column=1, sticky=tk.W)
+
+        self.variables.update({'con_mode': tk.StringVar()})
+        self.variables['con_mode'].set(self.coordinator.settings['con_mode'])
+
+        self._add_label("Connection options:", row=9, column=2, columnspan=4)
+
+        rb_once = tk.Radiobutton(self.root, text="Connect once",
+                                 variable=self.variables['con_mode'],
+                                 value="con_once",
+                                 **self.colors)
+        rb_once.grid(row=10, column=2, sticky=tk.W)
+
+        rb_per = tk.Radiobutton(self.root, text="Connect per send",
+                                variable=self.variables['con_mode'],
+                                value="con_per",
+                                **self.colors)
+        rb_per.grid(row=11, column=2, sticky=tk.W)
+
+        self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
+        self._add_entry('max_retries', width=2, row=10, column=5, sticky=tk.W)
+
+
+    def spawn_gui_menubar(self):
+        """Spawns the GUI menu bar that runs along the top of the
+        window."""
+        pass
