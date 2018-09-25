@@ -43,11 +43,13 @@ class Coordinator(object):
         for cb in CALLBACKS:
             cbname = cb.__name__.split('_')[1]
             print("registering callback: " + cbname)
-
-            def wrapped_callback():
-                return cb(self)
+            
+            def wrapit(cbfunc):
+                def wrapped():
+                    return cbfunc(self)
+                return wrapped
     
-            self.callbacks.update({cbname: wrapped_callback})
+            self.callbacks.update({cbname: wrapit(cb)})
     
     def send(self):
         """Send emails as configured."""
