@@ -50,6 +50,16 @@ class Email(object):
                         'attachment; filename="{}"'.format(filepath))
         self.mimemulti.attach(part)
     
+    def pull_data_from_coordinator(self):
+        """Pull in the data from the coordinator."""
+        self.add_text(self.coordinator.contents['text'])
+        for attach in self.coordinator.contents['attach'].split(','):
+            if not attach:
+                continue
+            attach = attach.strip()
+            self.add_attachment(attach)
+        self.headers.dump_headers_to_email()
+    
     def getmime(self):
         """Returns the MIMEMultipart object."""
         return self.mimemulti

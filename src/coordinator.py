@@ -26,6 +26,9 @@ class Coordinator(object):
         """Instantiate the Coordinator object.  Automatically creates & links
         the required modules."""
 
+        if CONFIG['settings']['debug']:
+            print("coordinator.__init__: starting instantiation")
+
         self.settings = copy.deepcopy(CONFIG['settings'])
         self.contents = copy.deepcopy(CONFIG['contents'])
         self.callbacks = {}
@@ -36,6 +39,9 @@ class Coordinator(object):
         self.headers.email = self.email
         self.sender = EmailSendHandler(self)
         self.gui = EmailGUI(self)
+        
+        if self.settings['debug']:
+            print("coordinator.__init__: instantiation complete")
 
     def register_callbacks(self):
         """Given a name and a function, register the callback function."""
@@ -48,17 +54,34 @@ class Coordinator(object):
                 def wrapped():
                     return cbfunc(self)
                 return wrapped
+            
+            if self.settings['debug']:
+                print("coordinator.register_callbacks: registering " + cbname)
     
             self.callbacks.update({cbname: wrapit(cb)})
     
     def retrieve_data_from_uis(self):
         """Get all the data from various UI elements."""
+        
+        if self.settings['debug']:
+            print("coordinator.retrieve_data_from_uis: pulling data")
+        
         self.gui.dump_values_to_coordinator()
     
     def send(self):
         """Send emails as configured."""
+        
+        if self.settings['debug']:
+            print("coordinator: send command recieved")
+        
         self.retrieve_data_from_uis()
+        self.email.pull_data_from_coordinator()
         self.sender.run()
+    
+    def callback_sent(self):
+        """Action to take when an email has been sent."""
+        self.gui.variables['progressbar'].set(
+            self.gui.variables['progressbar'].get() + 1)
 
 
 if __name__ == '__main__':

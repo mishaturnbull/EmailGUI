@@ -6,6 +6,7 @@ track of the headers for an Email message.
 
 from email.utils import COMMASPACE, formatdate
 import time
+import copy
 
 REQUIRED_HEADERS = [
     'date',     # RFC 2822
@@ -25,7 +26,7 @@ class Headers(object):
         self.coordinator = coordinator
         self.email = email
 
-        self.headers = {}
+        self.headers = copy.deepcopy(self.coordinator.contents['headers'])
 
     def add_header(self, header, value):
         """Add a header to the records."""
@@ -60,3 +61,20 @@ class Headers(object):
         self.add_header('to', COMMASPACE.join(
             self.coordinator.contents['to'].split(',')))
         self.add_header('from', self.coordinator.contents['from'])
+
+    def pull_from_header_gui(self, header_gui):
+        """Get all the headers from the GUI."""
+        for variable in header_gui.variables:
+            if variable.startswith('enable_'):
+                continue
+
+            if header_gui.variables['enable_' + variable].get() == 1:
+                self.headers[variable] = header_gui.variables[variable].get()
+            else:
+                self.headers[variable] = ''
+    
+    def dump_headers_to_email(self):
+        """Send all the header information to the Email class."""
+        for header in self.headers:
+            self.coordinator.email.add_header(header, self.headers[header])
+            

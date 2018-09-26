@@ -48,6 +48,8 @@ class EmailSendHandler(threading.Thread):
             num_threads = self.coordinator.settings['mt_num']
         elif self.coordinator.settings['mt_mode'] == 'unlimited':
             num_threads = self.coordinator.settings['amount']
+        else:
+            assert False, "got num_threads = " + repr(num_threads)
 
         emails_per_thread = self.coordinator.settings['amount'] // num_threads
 
@@ -71,6 +73,10 @@ class EmailSendHandler(threading.Thread):
             n_increases = self.coordinator.settings['amount'] - sending
             for i in range(n_increases):
                 self.worker_amounts[i] = self.worker_amounts[i] + 1
+        
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.create_worker_configurations: done: " +
+                  repr(self.worker_amounts))
 
     def get_amount(self, worker_index):
         """
@@ -83,6 +89,8 @@ class EmailSendHandler(threading.Thread):
         """
         Create the required number of worker threads.
         """
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.spawn_worker_threads: creating work pool")
         for i in range(len(self.worker_amounts)):
             worker = EmailSender(self, i)
 
@@ -95,6 +103,9 @@ class EmailSendHandler(threading.Thread):
     def start_workers(self):
         """Start all the worker threads sending emails."""
 
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.start_workers: "
+                  "sending start command to pool")
         for worker in self.workers:
             worker.start()
 
@@ -216,9 +227,9 @@ class EmailSender(threading.Thread):
                     print("Sending {} at {}".format(str(i),
                                                     str(time.time())))
 
-                server.sendmail(self.handler.coordinator.settings['from'],
-                                self.handler.coordinator.settings['to'],
-                                self.message_text)
+                server.sendmail(self.message['from'],
+                                self.handler.coordinator.contents['to'],
+                                self.message.as_string())
 
                 self.handler.callback_sent()
 

@@ -113,8 +113,6 @@ class GUIBase(object):
             
         self.variables.update({name: tk.IntVar()})
         self.variables[name].set(0)
-        
-        print('created variable: ' + repr(self.variables[name]))
             
         box = tk.Checkbutton(self.root, text=label,
                              variable=self.variables[name],
@@ -132,10 +130,15 @@ class EmailGUI(GUIBase):
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
         for v in self.variables:
+            print("processing " + v + " with " + repr(self.variables[v].get()))
+            
             if v in self.coordinator.settings:
                 d = self.coordinator.settings
             elif v in self.coordinator.contents:
                 d = self.coordinator.contents
+            else:
+                # stuff like progressbar we don't want to add to variables
+                continue
 
             try:
                 val = float(self.variables[v].get())
@@ -150,6 +153,7 @@ class EmailGUI(GUIBase):
                 except (ValueError, TypeError):
                     val = self.variables[v].get()
 
+            print("dumping variable " + v + " with value " + str(val))
             d[v] = val
 
 
@@ -219,7 +223,7 @@ class EmailGUI(GUIBase):
         # pylint: disable=C0102
         # "Blacklisted name 'bar'"
         # In this case, 'bar' makes perfect sense and is not
-        # being used as in foo/bar/baz
+        # being used as in foo/bar/baz 
         bar = ttk.Progressbar(self.root, orient='horizontal', length=564,
                               mode='determinate',
                               variable=self.variables['progressbar'])
