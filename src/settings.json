@@ -1,6 +1,6 @@
 {
     "contents": {
-        "from": "",
+        "account": "",
         "to": "",
         "subject": "Apology",
         "attach": "",
@@ -11,7 +11,16 @@
             "",
             "P.S. Please forgive me for sending this email.  I shall immediately",
             "dispatch a second email in apology."
-        ]
+        ],
+        "headers": {
+            "sender": "sender",
+            "from": "from",
+            "reply-to": "",
+            "date": "",
+            "message-id": "",
+            "comments": "",
+            "keywords": ""
+        }
     },
     "settings": {
         "server": "",
@@ -20,8 +29,6 @@
         "debug": true,
         "delay": 0,
         "max_retries": 5,
-        "display_from": "spammer@spam.com",
-    
         "amount": 10,
         "log_stdout": "Email_Log.out",
         "log_stderr": "Email_Log_Err.out",

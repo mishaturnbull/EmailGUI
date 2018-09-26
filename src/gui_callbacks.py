@@ -8,6 +8,7 @@ import webbrowser
 
 from helpers import suggest_thread_amt, verify_to, verify_to_email
 from prereqs import GUI_DOC
+from header_gui import HeaderGUI
 
 if sys.version_info.major == 3:
     import tkinter as tk
@@ -70,8 +71,9 @@ CALLBACKS.append(handle_send)
 
 def handle_headers(coordinator):
     """Spawn the header GUI."""
-    # TODO: implement this!
-    messagebox.showwarning("Headers", "Coming soon!")
+    hgui = HeaderGUI(coordinator)
+    hgui.spawn_gui_basics()
+    
 CALLBACKS.append(handle_headers)
 
 

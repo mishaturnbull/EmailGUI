@@ -8,6 +8,7 @@ from emailbuilder import Email
 from headers import Headers
 from sender import EmailSendHandler
 from gui import EmailGUI
+from header_gui import HeaderGUI
 
 from prereqs import CONFIG
 from gui_callbacks import CALLBACKS
@@ -42,7 +43,6 @@ class Coordinator(object):
         
         for cb in CALLBACKS:
             cbname = cb.__name__.split('_')[1]
-            print("registering callback: " + cbname)
             
             def wrapit(cbfunc):
                 def wrapped():

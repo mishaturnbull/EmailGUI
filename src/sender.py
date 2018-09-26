@@ -165,7 +165,7 @@ class EmailSender(threading.Thread):
         self.is_done = False
         self.n_sent = 0
 
-        self.message_text = self.handler.coordinator.email.as_string()
+        self.message = self.handler.coordinator.email.getmime()
 
     def establish_connection(self):
         """Establish a connection to the server specified in

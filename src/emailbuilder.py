@@ -49,6 +49,10 @@ class Email(object):
         part.add_header('Content-Disposition',
                         'attachment; filename="{}"'.format(filepath))
         self.mimemulti.attach(part)
+    
+    def getmime(self):
+        """Returns the MIMEMultipart object."""
+        return self.mimemulti
 
     def as_string(self):
         """Returns the stored email message as a string."""

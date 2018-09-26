@@ -70,7 +70,7 @@ parser.add_argument('--rcpt', nargs=1, dest='RCPT',
                     help='unlucky recipient of emails')
 parser.add_argument('--from', nargs=1, dest='FROM',
                     type=str, required=False,
-                    default=CONFIG['contents']['from'],
+                    default=CONFIG['contents']['account'],
                     help='your (sender\'s) email address')
 parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
                     type=str, required=False,

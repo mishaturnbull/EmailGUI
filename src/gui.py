@@ -45,18 +45,21 @@ elif sys.version_info.major == 2:
     import ttk
 
 
-class EmailGUI(object):
-    '''Make things easier to use, and prettier.'''
+class GUIBase(object):
+    """Base class for a GUI.  Not to be called to directly."""
 
-
-    def __init__(self, coordinator):
-        '''Start the class, and make stuff happen.'''
+    def __init__(self, coordinator, _root=None):
+        """Instantiate the GUI."""
 
         self.coordinator = coordinator
-        self.root = tk.Tk()
+        
+        if _root is None:
+            self.root = tk.Tk()
+        else:
+            self.root = tk.Toplevel(_root)
 
-        self.variables = {}
-        self.inputs = {}
+        self.variables = self.boxes = {}
+        self.entry_width = self.coordinator.settings['width']
 
         self.colors = {"background": self.coordinator.settings['colors']['bg'],
                        }
@@ -65,26 +68,6 @@ class EmailGUI(object):
                         "activebackground":
                             self.coordinator.settings['colors']['bg'],
                         }
-
-        self.entry_width = self.coordinator.settings['width']
-    
-    def dump_values_to_coordinator(self):
-        """Sends over all the information needed for a successful email."""
-        for v in self.variables:
-            if v in self.coordinator.settings:
-                d = self.coordinator.settings
-            elif v in self.coordinator.contents:
-                d = self.coordinator.contents
-            
-            try:
-                val = float(self.variables[v].get())
-            except (ValueError, TypeError):
-                try:
-                    val = int(self.variables[v].get())
-                except (ValueError, TypeError):
-                    val = self.variables[v].get()
-            
-            d[v] = val
 
     def _add_label(self, text, label_opts=None, **grids):
         """Adds a tk.Label element to the root window and grids it
@@ -122,6 +105,54 @@ class EmailGUI(object):
         btn = tk.Button(self.root, text=label, command=callback,
                         **btn_opts, **self.colors)
         btn.grid(**grids)
+    
+    def _add_box(self, name, label, box_opts=None, **grids):
+        """Adds a checkbox to the GUI with specified name and options."""
+        if box_opts is None:
+            box_opts = {}
+            
+        self.variables.update({name: tk.IntVar()})
+        self.variables[name].set(0)
+        
+        print('created variable: ' + repr(self.variables[name]))
+            
+        box = tk.Checkbutton(self.root, text=label,
+                             variable=self.variables[name],
+                             **box_opts, **self.colors)
+        box.grid(**grids)
+
+
+class EmailGUI(GUIBase):
+    '''Make things easier to use, and prettier.'''
+
+    def __init__(self, coordinator):
+        '''Start the class, and make stuff happen.'''
+        super(EmailGUI, self).__init__(coordinator)
+
+    def dump_values_to_coordinator(self):
+        """Sends over all the information needed for a successful email."""
+        for v in self.variables:
+            if v in self.coordinator.settings:
+                d = self.coordinator.settings
+            elif v in self.coordinator.contents:
+                d = self.coordinator.contents
+
+            try:
+                val = float(self.variables[v].get())
+
+                # check for and remove unneeded decimals, e.g.:
+                # 2.0 -> 2, this way we can call range() on it later
+                if int(val) == val:
+                    val = int(val)
+            except (ValueError, TypeError):
+                try:
+                    val = int(self.variables[v].get())
+                except (ValueError, TypeError):
+                    val = self.variables[v].get()
+
+            d[v] = val
+
+
 
     def spawn_gui(self):
         """Spawn the entire GUI."""
