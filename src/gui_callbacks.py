@@ -62,6 +62,7 @@ CALLBACKS.append(handle_browse)
 
 def handle_send(coordinator):
     """Send the emails."""
+    coordinator.gui.bar['maximum'] = coordinator.settings['amount']
     msg = '\n'.join(coordinator.settings['confirmation_msg'])
     mboxres = messagebox.askyesno("Confirmation", msg)
     if mboxres:

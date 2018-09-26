@@ -144,6 +144,9 @@ class EmailSendHandler(threading.Thread):
         Takes action when each email is sent.  Mainly reports upwards to
         the coordinator for updating progress information.
         """
+        
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler received notification of a sent email")
 
         self.coordinator.callback_sent()
 
@@ -231,14 +234,20 @@ class EmailSender(threading.Thread):
                                 self.handler.coordinator.contents['to'],
                                 self.message.as_string())
 
+                if self.handler.coordinator.settings['debug']:
+                    print("Sent successfully!")
+
                 self.handler.callback_sent()
 
                 # by using timeit, it's easy to tell that
                 # this if-statement is much faster than
                 # simply doing time.sleep(delay) when delay = 0.
                 # difference is 0.017 to 0.43 seconds
-                if self.handler.coordinator.settings['delay'] != 0:
-                    time.sleep(self.handler.coordinator.settings['delay'])
+                delay = self.handler.coordinator.settings['delay']
+                if delay != 0:
+                    if self.handler.coordinator.settings['debug']:
+                        print("about to sleep for " + str(delay))
+                    time.sleep(delay)
 
             server.quit()
 
@@ -258,6 +267,9 @@ class EmailSender(threading.Thread):
                 server.quit()
         finally:
             self.is_done = True
+        
+        if self.handler.coordinator.settings['debug']:
+            print("emailsender.send_emails: done and returning")
 
     def run(self):
         """

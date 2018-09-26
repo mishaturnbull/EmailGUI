@@ -1,7 +1,7 @@
 {
     "contents": {
-        "account": "",
-        "to": "",
+        "account": "spambot@127.0.0.1",
+        "to": "misha@slippery-weasel",
         "subject": "Apology",
         "attach": "",
         "text": [
@@ -14,7 +14,7 @@
         ],
         "headers": {
             "sender": "sender",
-            "from": "from",
+            "from": "spambot@127.0.0.1",
             "reply-to": "",
             "date": "",
             "message-id": "",
@@ -23,7 +23,7 @@
         }
     },
     "settings": {
-        "server": "",
+        "server": "127.0.0.1:25",
         "mt_mode": "none",
         "title": "SpamBotFromHell",
         "debug": true,

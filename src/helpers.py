@@ -5,7 +5,7 @@ Contains 'simpler' helper functions that don't depend on other functionality.
 
 import smtplib
 
-def suggest_thread_amt(num_emails):
+def suggest_thread_amt(coordinator):
     '''Given a total number of emails to send `num_emails`, determine which
 multithreading mode/settings would likely be the fastest and least likely to
 fail.
@@ -36,20 +36,22 @@ will we return 180.
     # never return a combination which would allow more than 15 active
     # connections to the server.
 
+    num_emails = coordinator.settings['amount']
+
     if num_emails == 1:
         # just one email.  seriously, why use multithreading??
-        return ('none', 0, 'con_once')
+        out = ('none', 0, 'con_once')
 
     elif num_emails <= 15:
         # only use unlimited if it won't throw 421 errors -- happens above 15
-        return ('ulim', 0, 'con_once')
+        out = ('ulim', 0, 'con_once')
 
     elif 500 > num_emails > 15:
         # limited is our best bet here
         if (num_emails % 15) == 0:
             # the number of emails divides evenly by 15 - use 15 threads and
             # each one gets num_emails / 15 emails to send
-            return ('lim', 15, 'con_once')
+            out = ('lim', 15, 'con_once')
         else:
             # num_emails does not divide by 15.  trying to use 15 threads will
             # result in each one having a float value of emails to send, which
@@ -60,11 +62,11 @@ will we return 180.
             #
             # To avoid this, use 14 threads with the same amount and send
             # the remainder in a 15th
-            return ('lim', 14, 'con_once')
+            out = ('lim', 14, 'con_once')
     elif num_emails == 500:
         # send 500 emails, but send them in one shot -- often easier, as noted
         # in the docstring, to send 500 then wait for tomorrow
-        return ('lim', 14, 'con_once')
+        out = ('lim', 14, 'con_once')
     elif num_emails > 500:
         # gmail allows no more than 500 emails in 24 hours
         # by using a delay of 2.88 minutes (172.8 seconds), we can send 500
@@ -73,7 +75,9 @@ will we return 180.
         #
         # we use 3 minutes (180 seconds) just to be sure that we don't trigger
         # anti-spam
-        return ('none', 180, 'con_per')
+        out = ('none', 180, 'con_per')
+    
+    return out
 
 
 def verify_to(address, serv):

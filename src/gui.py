@@ -129,8 +129,10 @@ class EmailGUI(GUIBase):
 
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
+        if self.coordinator.settings['debug']:
+            print("emailgui.dump_values_to_coordinator: beginning data dump")
         for v in self.variables:
-            print("processing " + v + " with " + repr(self.variables[v].get()))
+            print("  processing " + v + " with " + repr(self.variables[v].get()))
             
             if v in self.coordinator.settings:
                 d = self.coordinator.settings
@@ -153,7 +155,7 @@ class EmailGUI(GUIBase):
                 except (ValueError, TypeError):
                     val = self.variables[v].get()
 
-            print("dumping variable " + v + " with value " + str(val))
+            print("  dumping variable " + v + " with value " + str(val))
             d[v] = val
 
 
@@ -224,10 +226,10 @@ class EmailGUI(GUIBase):
         # "Blacklisted name 'bar'"
         # In this case, 'bar' makes perfect sense and is not
         # being used as in foo/bar/baz 
-        bar = ttk.Progressbar(self.root, orient='horizontal', length=564,
-                              mode='determinate',
-                              variable=self.variables['progressbar'])
-        bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
+        self.bar = ttk.Progressbar(self.root, orient='horizontal', length=600,
+                                   mode='determinate',
+                                   variable=self.variables['progressbar'])
+        self.bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
 
     def spawn_gui_settings(self):
         """Spawn the lower-section GUI settings for multithreading, etc."""

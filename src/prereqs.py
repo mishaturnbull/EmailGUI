@@ -97,25 +97,34 @@ CONFIG['contents']['from'] = args.FROM
 CONFIG['settings']['server'] = args.SERVER
 CONFIG['settings']['max_retries'] = args.MAX_RETRIES
 CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
-CONFIG['settings']['multithread'] = suggest_thread_amt(
-    int(CONFIG['settings']['amount']))
 
 
 class FakeSTDOUT(object):
     '''Pretend to be sys.stdout, but write everything to a log AND
     the actual sys.stdout.'''
 
-    def __init__(self, stream, filename):
+    def __init__(self, stream, filename, realtime=False):
         self.terminal = stream
-        self.log = open(filename, 'w')
+        if not realtime:
+            self.log = open(filename, 'w')
         self._filename = filename
+        self.realtime = realtime
 
         self.is_empty = True
 
-    def write(self, message):
+        self.write("----- starting log file -----", True)
+        self.is_empty = True        
+
+    def write(self, message, logonly=False):
         '''Impersonate sys.stdout.write()'''
-        self.terminal.write(message)
-        self.log.write(message)
+        if not logonly:
+            self.terminal.write(message)
+
+        if self.realtime:
+            with open(self._filename, 'a') as log:
+                log.write(message)
+        else:
+            self.log.write(message)
 
         self.is_empty = False
 
@@ -125,7 +134,11 @@ class FakeSTDOUT(object):
 
     def FSO_close(self):
         '''Close the log files.'''
-        self.log.close()
+        empty = self.is_empty
+        self.write("----- ending log file -----", True)
+        self.is_empty = empty
+        if not self.realtime:
+            self.log.close()
 
         if not self.is_empty and not CONFIG['settings']['debug']:
             os.remove(self._filename)
