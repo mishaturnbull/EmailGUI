@@ -59,6 +59,8 @@ class Email(object):
             attach = attach.strip()
             self.add_attachment(attach)
         self.headers.dump_headers_to_email()
+        # subject is technically a header in MIME...
+        self.add_header('subject', self.coordinator.contents['subject'])
     
     def getmime(self):
         """Returns the MIMEMultipart object."""

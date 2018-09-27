@@ -158,7 +158,11 @@ class EmailGUI(GUIBase):
             print("  dumping variable " + v + " with value " + str(val))
             d[v] = val
 
-
+    def callback_sent(self):
+        """Action to take on a sent email."""
+        # progress bar update
+        self.variables['progressbar'].set(
+                self.variables['progressbar'].get() + 1)
 
     def spawn_gui(self):
         """Spawn the entire GUI."""

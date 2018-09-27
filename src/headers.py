@@ -27,6 +27,12 @@ class Headers(object):
         self.email = email
 
         self.headers = copy.deepcopy(self.coordinator.contents['headers'])
+        self.enabled = {}
+
+        for header in self.headers:
+            self.enabled.update({header: False})
+            if self.headers[header]:
+                self.enabled[header] = True
 
     def add_header(self, header, value):
         """Add a header to the records."""
@@ -57,15 +63,15 @@ class Headers(object):
     def auto_make_basics(self):
         """Create the basic tags from the Coordinator settings fields."""
         self.add_header('date', formatdate(time.time()))
-        self.add_header('sender', self.coordinator.contents['from'])
-        self.add_header('to', COMMASPACE.join(
-            self.coordinator.contents['to'].split(',')))
+        self.add_header('sender', self.coordinator.contents['account'])
         self.add_header('from', self.coordinator.contents['from'])
 
     def pull_from_header_gui(self, header_gui):
         """Get all the headers from the GUI."""
         for variable in header_gui.variables:
             if variable.startswith('enable_'):
+                self.enabled[variable] = bool(
+                    header_gui.variables[variable].get())
                 continue
 
             if header_gui.variables['enable_' + variable].get() == 1:
@@ -76,5 +82,6 @@ class Headers(object):
     def dump_headers_to_email(self):
         """Send all the header information to the Email class."""
         for header in self.headers:
-            self.coordinator.email.add_header(header, self.headers[header])
+            if self.enabled[header]:
+                self.coordinator.email.add_header(header, self.headers[header])
             

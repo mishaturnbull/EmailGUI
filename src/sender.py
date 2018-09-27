@@ -154,6 +154,9 @@ class EmailSendHandler(threading.Thread):
 
         if self.n_sent == self.coordinator.settings['amount']:
             self.is_done = True
+        
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler notification actions complete")
 
 
 class EmailSender(threading.Thread):
@@ -238,6 +241,9 @@ class EmailSender(threading.Thread):
                     print("Sent successfully!")
 
                 self.handler.callback_sent()
+                
+                if self.handler.coordinator.settings['debug']:
+                    print("Completed send callback")
 
                 # by using timeit, it's easy to tell that
                 # this if-statement is much faster than
@@ -252,7 +258,11 @@ class EmailSender(threading.Thread):
             server.quit()
 
         except smtplib.SMTPServerDisconnected:
-            server.quit()
+            try:
+                server.quit()
+            except smtplib.SMTPServerDisconnected:
+                # already closed one way or another
+                pass
 
             if retries_left != 0:
                 print("Server disconnected.  "

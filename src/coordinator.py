@@ -15,6 +15,8 @@ from gui_callbacks import CALLBACKS
 
 import copy
 import sys
+import os
+
 
 class Coordinator(object):
     """
@@ -39,6 +41,8 @@ class Coordinator(object):
         self.headers.email = self.email
         self.sender = EmailSendHandler(self)
         self.gui = EmailGUI(self)
+
+        self.headers.auto_make_basics()
 
         if self.settings['debug']:
             print("coordinator.__init__: instantiation complete")
@@ -82,12 +86,17 @@ class Coordinator(object):
         """Action to take when an email has been sent."""
         if self.settings['debug']:
             print("coordinator recieved notification of email sent")
-        self.gui.variables['progressbar'].set(
-            self.gui.variables['progressbar'].get() + 1)
+        self.gui.callback_sent()
+        if self.settings['debug']:
+            print("coordinator notification actions completed")
 
 
 if __name__ == '__main__':
     C = Coordinator()
+    
+    for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
+        if os.path.exists(log):
+            os.remove(log)
     
     sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'], 
                             realtime=C.settings['debug'])
