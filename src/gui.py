@@ -24,13 +24,8 @@ from __future__ import (division, print_function, generators, absolute_import)
 
 import sys
 
-from helpers import suggest_thread_amt, verify_to, verify_to_email
-
 if sys.version_info.major == 3:
     import tkinter as tk
-    import tkinter.messagebox as messagebox
-    import tkinter.filedialog as filedialog
-    import tkinter.scrolledtext as scrolledtext
     from tkinter import ttk
 elif sys.version_info.major == 2:
     # pylint: disable=E0401
@@ -39,9 +34,6 @@ elif sys.version_info.major == 2:
     #  but this block will never be executed in py3, and therefore
     #  will never throw an error
     import Tkinter as tk
-    import tkMessageBox as messagebox
-    import tkFileDialog as filedialog
-    import ScrolledText as scrolledtext
     import ttk
 
 
@@ -52,7 +44,7 @@ class GUIBase(object):
         """Instantiate the GUI."""
 
         self.coordinator = coordinator
-        
+
         if _root is None:
             self.root = tk.Tk()
         else:
@@ -105,19 +97,24 @@ class GUIBase(object):
         btn = tk.Button(self.root, text=label, command=callback,
                         **btn_opts, **self.colors)
         btn.grid(**grids)
-    
+
     def _add_box(self, name, label, box_opts=None, **grids):
         """Adds a checkbox to the GUI with specified name and options."""
         if box_opts is None:
             box_opts = {}
-            
+
         self.variables.update({name: tk.IntVar()})
         self.variables[name].set(0)
-            
+
         box = tk.Checkbutton(self.root, text=label,
                              variable=self.variables[name],
                              **box_opts, **self.colors)
         box.grid(**grids)
+
+    def run(self):
+        """Starts the GUI."""
+
+        self.root.mainloop()
 
 
 class EmailGUI(GUIBase):
@@ -131,19 +128,20 @@ class EmailGUI(GUIBase):
         """Sends over all the information needed for a successful email."""
         if self.coordinator.settings['debug']:
             print("emailgui.dump_values_to_coordinator: beginning data dump")
-        for v in self.variables:
-            print("  processing " + v + " with " + repr(self.variables[v].get()))
-            
-            if v in self.coordinator.settings:
-                d = self.coordinator.settings
-            elif v in self.coordinator.contents:
-                d = self.coordinator.contents
+        for var in self.variables:
+            print("  processing " + var + " with " + repr(
+                self.variables[var].get()))
+
+            if var in self.coordinator.settings:
+                dic = self.coordinator.settings
+            elif var in self.coordinator.contents:
+                dic = self.coordinator.contents
             else:
                 # stuff like progressbar we don't want to add to variables
                 continue
 
             try:
-                val = float(self.variables[v].get())
+                val = float(self.variables[var].get())
 
                 # check for and remove unneeded decimals, e.g.:
                 # 2.0 -> 2, this way we can call range() on it later
@@ -151,18 +149,25 @@ class EmailGUI(GUIBase):
                     val = int(val)
             except (ValueError, TypeError):
                 try:
-                    val = int(self.variables[v].get())
+                    val = int(self.variables[var].get())
                 except (ValueError, TypeError):
-                    val = self.variables[v].get()
+                    val = self.variables[var].get()
 
-            print("  dumping variable " + v + " with value " + str(val))
-            d[v] = val
+            print("  dumping variable " + var + " with value " + str(val))
+            dic[var] = val
 
     def callback_sent(self):
         """Action to take on a sent email."""
         # progress bar update
-        self.variables['progressbar'].set(
-                self.variables['progressbar'].get() + 1)
+        print(self.bar.__dict__)
+        print('bar ["value"] type: ' + repr(type(self.bar['value'])))
+        var = self.variables['progressbar']
+        print('got var = ' + repr(var))
+        val = var.get()
+        print('got val = ' + repr(val))
+        val += 1
+        print('incremented = ' + repr(val))
+        var.set(val)
 
     def spawn_gui(self):
         """Spawn the entire GUI."""
@@ -229,7 +234,7 @@ class EmailGUI(GUIBase):
         # pylint: disable=C0102
         # "Blacklisted name 'bar'"
         # In this case, 'bar' makes perfect sense and is not
-        # being used as in foo/bar/baz 
+        # being used as in foo/bar/baz
         self.bar = ttk.Progressbar(self.root, orient='horizontal', length=600,
                                    mode='determinate',
                                    variable=self.variables['progressbar'])
@@ -301,7 +306,7 @@ class EmailGUI(GUIBase):
         menu.add_cascade(label='Settings', menu=menu_settings)
 
         menu_settings.add_command(label="Auto-select multithreading",
-            command=self.coordinator.callbacks['autoselectmt'])
+                            command=self.coordinator.callbacks['autoselectmt'])
 
         menu_help = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label='Help', menu=menu_help)

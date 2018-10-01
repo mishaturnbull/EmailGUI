@@ -13,8 +13,6 @@ import json
 import smtplib
 import os
 
-from helpers import suggest_thread_amt
-
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
     # in py3, range is what xrange was
@@ -113,7 +111,7 @@ class FakeSTDOUT(object):
         self.is_empty = True
 
         self.write("----- starting log file -----", True)
-        self.is_empty = True        
+        self.is_empty = True
 
     def write(self, message, logonly=False):
         '''Impersonate sys.stdout.write()'''

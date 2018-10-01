@@ -3,29 +3,18 @@
 Contains the header edit submenu.
 """
 
-from gui import GUIBase
-
 import sys
+
+from gui import GUIBase
 
 if sys.version_info.major == 3:
     import tkinter as tk
-    import tkinter.messagebox as messagebox
-    import tkinter.filedialog as filedialog
-    import tkinter.scrolledtext as scrolledtext
-    from tkinter import ttk
 elif sys.version_info.major == 2:
-    # pylint: disable=E0401
-    # pylint complains about not finding tkMessageBox etc
-    #  when run using python 3, because this stuff is for python 2
-    #  but this block will never be executed in py3, and therefore
-    #  will never throw an error
     import Tkinter as tk
-    import tkMessageBox as messagebox
-    import tkFileDialog as filedialog
-    import ScrolledText as scrolledtext
-    import ttk
 
 class HeaderGUI(GUIBase):
+    """This class is responsible for the GUI that allows the user to 
+    enter/alter different email headers."""
 
     def __init__(self, coordinator):
         """Instantiate the header menu."""
@@ -42,7 +31,7 @@ class HeaderGUI(GUIBase):
         header sub-dictionary in contents."""
         super(HeaderGUI, self)._add_entry(varname, width, entry_opts, **grids)
         self.variables[varname].set(
-                self.coordinator.headers.headers[varname])
+            self.coordinator.headers.headers[varname])
 
     def _add_box(self, name, label, box_opts=None, **grids):
         """Wrapper for GUIBase's _add_box method.  Auto-enables if the

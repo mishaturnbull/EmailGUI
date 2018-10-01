@@ -5,6 +5,7 @@ Contains 'simpler' helper functions that don't depend on other functionality.
 
 import smtplib
 
+
 def suggest_thread_amt(coordinator):
     '''Given a total number of emails to send `num_emails`, determine which
 multithreading mode/settings would likely be the fastest and least likely to
@@ -76,7 +77,7 @@ will we return 180.
         # we use 3 minutes (180 seconds) just to be sure that we don't trigger
         # anti-spam
         out = ('none', 180, 'con_per')
-    
+
     return out
 
 

@@ -4,7 +4,7 @@ This contains the Headers class which is primarily responsible for keeping
 track of the headers for an Email message.
 """
 
-from email.utils import COMMASPACE, formatdate
+from email.utils import formatdate
 import time
 import copy
 
@@ -78,10 +78,9 @@ class Headers(object):
                 self.headers[variable] = header_gui.variables[variable].get()
             else:
                 self.headers[variable] = ''
-    
+
     def dump_headers_to_email(self):
         """Send all the header information to the Email class."""
         for header in self.headers:
             if self.enabled[header]:
                 self.coordinator.email.add_header(header, self.headers[header])
-            

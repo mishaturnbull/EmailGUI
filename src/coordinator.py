@@ -4,18 +4,17 @@ Contains the Coordinator class that is responsible for communications between
 all different modules of the program.
 """
 
+import copy
+import sys
+import os
+
 from emailbuilder import Email
 from headers import Headers
 from sender import EmailSendHandler
 from gui import EmailGUI
-from header_gui import HeaderGUI
 
 from prereqs import CONFIG, FakeSTDOUT
 from gui_callbacks import CALLBACKS
-
-import copy
-import sys
-import os
 
 
 class Coordinator(object):
@@ -93,18 +92,18 @@ class Coordinator(object):
 
 if __name__ == '__main__':
     C = Coordinator()
-    
+
     for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
         if os.path.exists(log):
             os.remove(log)
-    
-    sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'], 
+
+    sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
                             realtime=C.settings['debug'])
     sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
                             realtime=C.settings['debug'])
-    
+
     C.gui.spawn_gui()
-    C.gui.root.mainloop()
-    
+    C.gui.run()
+
     sys.stdout = sys.stdout.FSO_close()
     sys.stderr = sys.stderr.FSO_close()

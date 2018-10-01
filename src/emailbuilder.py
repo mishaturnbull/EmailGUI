@@ -49,7 +49,7 @@ class Email(object):
         part.add_header('Content-Disposition',
                         'attachment; filename="{}"'.format(filepath))
         self.mimemulti.attach(part)
-    
+
     def pull_data_from_coordinator(self):
         """Pull in the data from the coordinator."""
         self.add_text(self.coordinator.contents['text'])
@@ -61,7 +61,7 @@ class Email(object):
         self.headers.dump_headers_to_email()
         # subject is technically a header in MIME...
         self.add_header('subject', self.coordinator.contents['subject'])
-    
+
     def getmime(self):
         """Returns the MIMEMultipart object."""
         return self.mimemulti

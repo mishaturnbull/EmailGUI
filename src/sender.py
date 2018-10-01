@@ -73,7 +73,7 @@ class EmailSendHandler(threading.Thread):
             n_increases = self.coordinator.settings['amount'] - sending
             for i in range(n_increases):
                 self.worker_amounts[i] = self.worker_amounts[i] + 1
-        
+
         if self.coordinator.settings['debug']:
             print("emailsendhandler.create_worker_configurations: done: " +
                   repr(self.worker_amounts))
@@ -144,7 +144,7 @@ class EmailSendHandler(threading.Thread):
         Takes action when each email is sent.  Mainly reports upwards to
         the coordinator for updating progress information.
         """
-        
+
         if self.coordinator.settings['debug']:
             print("emailsendhandler received notification of a sent email")
 
@@ -154,7 +154,7 @@ class EmailSendHandler(threading.Thread):
 
         if self.n_sent == self.coordinator.settings['amount']:
             self.is_done = True
-        
+
         if self.coordinator.settings['debug']:
             print("emailsendhandler notification actions complete")
 
@@ -241,7 +241,7 @@ class EmailSender(threading.Thread):
                     print("Sent successfully!")
 
                 self.handler.callback_sent()
-                
+
                 if self.handler.coordinator.settings['debug']:
                     print("Completed send callback")
 
@@ -277,7 +277,7 @@ class EmailSender(threading.Thread):
                 server.quit()
         finally:
             self.is_done = True
-        
+
         if self.handler.coordinator.settings['debug']:
             print("emailsender.send_emails: done and returning")
 
