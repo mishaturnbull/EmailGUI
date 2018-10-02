@@ -160,9 +160,9 @@ class EmailGUI(GUIBase):
         """Action to take on a sent email."""
         # progress bar update
         print(self.bar.__dict__)
-        print('bar ["value"] type: ' + repr(type(self.bar['value'])))
         var = self.variables['progressbar']
         print('got var = ' + repr(var))
+        import pdb; pdb.set_trace()
         val = var.get()
         print('got val = ' + repr(val))
         val += 1
@@ -231,13 +231,15 @@ class EmailGUI(GUIBase):
         self._add_button('Abort', self.coordinator.callbacks['abort'],
                          row=8, column=1)
         self.variables.update({'progressbar': tk.IntVar()})
+        self.variables['progressbar'].set(0)
         # pylint: disable=C0102
         # "Blacklisted name 'bar'"
         # In this case, 'bar' makes perfect sense and is not
         # being used as in foo/bar/baz
         self.bar = ttk.Progressbar(self.root, orient='horizontal', length=600,
                                    mode='determinate',
-                                   variable=self.variables['progressbar'])
+                                   variable=self.variables['progressbar'],
+                                   maximum=self.coordinator.settings['amount'])
         self.bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
 
     def spawn_gui_settings(self):
