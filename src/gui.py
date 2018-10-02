@@ -23,6 +23,7 @@ from __future__ import (division, print_function, generators, absolute_import)
 # %% imports and constants
 
 import sys
+import threading
 
 if sys.version_info.major == 3:
     import tkinter as tk
@@ -123,14 +124,17 @@ class EmailGUI(GUIBase):
     def __init__(self, coordinator):
         '''Start the class, and make stuff happen.'''
         super(EmailGUI, self).__init__(coordinator)
+        
+        self._pbar_lock = threading.Lock()
 
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
         if self.coordinator.settings['debug']:
             print("emailgui.dump_values_to_coordinator: beginning data dump")
         for var in self.variables:
-            print("  processing " + var + " with " + repr(
-                self.variables[var].get()))
+            if self.coordinator.settings['debug']:
+                print("  processing " + var + " with " + repr(
+                        self.variables[var].get()))
 
             if var in self.coordinator.settings:
                 dic = self.coordinator.settings
@@ -153,21 +157,26 @@ class EmailGUI(GUIBase):
                 except (ValueError, TypeError):
                     val = self.variables[var].get()
 
-            print("  dumping variable " + var + " with value " + str(val))
+            if self.coordinator.settings['debug']:
+                print("  dumping variable " + var + " with value " + str(val))
             dic[var] = val
 
     def callback_sent(self):
         """Action to take on a sent email."""
         # progress bar update
-        print(self.bar.__dict__)
+        #print("Acquiring pbar lock...")
+        self._pbar_lock.acquire()
+        #print(self.bar.__dict__)
         var = self.variables['progressbar']
-        print('got var = ' + repr(var))
-        import pdb; pdb.set_trace()
+        #print('got var = ' + repr(var))
+        #import pdb; pdb.set_trace()
         val = var.get()
-        print('got val = ' + repr(val))
+        #print('got val = ' + repr(val))
         val += 1
-        print('incremented = ' + repr(val))
+        #print('incremented = ' + repr(val))
         var.set(val)
+        #print("Done, releasing lock...")
+        self._pbar_lock.release()
 
     def spawn_gui(self):
         """Spawn the entire GUI."""
@@ -290,6 +299,9 @@ class EmailGUI(GUIBase):
 
         self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
         self._add_entry('max_retries', width=2, row=10, column=5, sticky=tk.W)
+
+        self._add_label("Misc. options:", row=9, column=6, sticky=tk.W)
+        self._add_box("debug", "Debug mode", row=10, column=6, sticky=tk.W)
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the

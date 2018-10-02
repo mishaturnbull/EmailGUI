@@ -85,7 +85,7 @@ class Coordinator(object):
         """Action to take when an email has been sent."""
         if self.settings['debug']:
             print("coordinator recieved notification of email sent")
-        self.gui.callback_sent()
+        #self.gui.callback_sent()
         if self.settings['debug']:
             print("coordinator notification actions completed")
 

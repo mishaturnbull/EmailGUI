@@ -149,6 +149,16 @@ class EmailSendHandler(threading.Thread):
             print("emailsendhandler received notification of a sent email")
 
         self.coordinator.callback_sent()
+        
+        # try changing the pbar value here instead of gui class, since
+        # tcltk isn't threadsafe
+        #import pdb; pdb.set_trace()
+        gui = self.coordinator.gui
+        var = gui.variables['progressbar']
+        var.set(var.get() + 1)
+
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler pushed pbar update")
 
         self.n_sent += 1
 
@@ -158,6 +168,8 @@ class EmailSendHandler(threading.Thread):
         if self.coordinator.settings['debug']:
             print("emailsendhandler notification actions complete")
 
+
+# %% Atom worker thread
 
 class EmailSender(threading.Thread):
     """

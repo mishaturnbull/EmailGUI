@@ -25,8 +25,9 @@
     "settings": {
         "server": "127.0.0.1:25",
         "mt_mode": "none",
+        "mt_num": 0,
         "title": "SpamBotFromHell",
-        "debug": true,
+        "debug": false,
         "delay": 0,
         "max_retries": 5,
         "amount": 10,
