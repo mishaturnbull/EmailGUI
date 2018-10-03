@@ -112,25 +112,10 @@ class GUIBase(object):
                              **box_opts, **self.colors)
         box.grid(**grids)
 
-    def run(self):
-        """Starts the GUI."""
-
-        self.root.mainloop()
-
-
-class EmailGUI(GUIBase):
-    '''Make things easier to use, and prettier.'''
-
-    def __init__(self, coordinator):
-        '''Start the class, and make stuff happen.'''
-        super(EmailGUI, self).__init__(coordinator)
-        
-        self._pbar_lock = threading.Lock()
-
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
         if self.coordinator.settings['debug']:
-            print("emailgui.dump_values_to_coordinator: beginning data dump")
+            print("guibase.dump_values_to_coordinator: beginning data dump")
         for var in self.variables:
             if self.coordinator.settings['debug']:
                 print("  processing " + var + " with " + repr(
@@ -160,6 +145,42 @@ class EmailGUI(GUIBase):
             if self.coordinator.settings['debug']:
                 print("  dumping variable " + var + " with value " + str(val))
             dic[var] = val
+
+    def pull_values_from_coordinator(self):
+        """Update (and overwrite!) all values with those stored in the
+        coordinator."""
+        if self.coordinator.settings['debug']:
+            print('guibase.pull_values_from_coordinator: beginning data pull')
+
+        for key in self.variables:
+            if self.coordinator.settings['debug']:
+                print('   processing ' + str(key) + " with val " +
+                      repr(self.variables[key].get()))
+
+            if key in self.coordinator.settings:
+                dsel = self.coordinator.settings
+            elif key in self.coordinator.contents:
+                dsel = self.coordinator.contents
+            else:
+                continue
+
+            val = str(dsel[key])
+            self.variables[key].set(val)
+
+    def run(self):
+        """Starts the GUI."""
+
+        self.root.mainloop()
+
+
+class EmailGUI(GUIBase):
+    '''Make things easier to use, and prettier.'''
+
+    def __init__(self, coordinator):
+        '''Start the class, and make stuff happen.'''
+        super(EmailGUI, self).__init__(coordinator)
+
+        self._pbar_lock = threading.Lock()
 
     def callback_sent(self):
         """Action to take on a sent email."""
@@ -296,7 +317,7 @@ class EmailGUI(GUIBase):
                                 value="con_per",
                                 **self.colors)
         rb_per.grid(row=11, column=2, sticky=tk.W)
-        
+
         rb_some = tk.Radiobutton(self.root, text="Connect every n mails:",
                                  variable=self.variables['con_mode'],
                                  value="con_some",
