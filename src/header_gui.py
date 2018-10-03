@@ -12,8 +12,9 @@ if sys.version_info.major == 3:
 elif sys.version_info.major == 2:
     import Tkinter as tk
 
+
 class HeaderGUI(GUIBase):
-    """This class is responsible for the GUI that allows the user to 
+    """This class is responsible for the GUI that allows the user to
     enter/alter different email headers."""
 
     def __init__(self, coordinator):

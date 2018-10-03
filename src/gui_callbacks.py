@@ -89,11 +89,38 @@ def handle_autoselectmt(coordinator):
     """Automatically select the multithreading and connection options."""
 
     coordinator.retrieve_data_from_uis()
+    
+    prev_serv = None
 
-    settings = suggest_thread_amt(coordinator)
+    try:
+        settings = suggest_thread_amt(coordinator)
+    except ValueError:
+        # most likely a server address that couldn't be determined to be
+        # local or nonlocal
+        # ask the user and do some tinkering ;)
+        ans = messagebox.askyesnocancel("Settings auto-selection",
+                                        "Unable to determine if the server "
+                                        "is local or not!  Please select "
+                                        "whether or not the specified "
+                                        "server is running locally or not.")
+        if ans is None:
+            # simplest case -- None is returned on cancel.
+            return
+        elif ans:
+            # user said yes
+            prev_serv = coordinator.settings['server']
+            coordinator.settings['server'] = '127.0.0.1'
+        else:
+            # user said no
+            prev_serv = coordinator.settings['server']
+            coordinator.settings['server'] = '134.129.156.163'
+        
+        settings = suggest_thread_amt(coordinator)
+        coordinator.settings['server'] = prev_serv
 
     for key in settings:
         coordinator.settings[key] = settings[key]
+        
 
     coordinator.gui.pull_values_from_coordinator()
 

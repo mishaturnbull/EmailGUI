@@ -111,6 +111,11 @@ class GUIBase(object):
                              variable=self.variables[name],
                              **box_opts, **self.colors)
         box.grid(**grids)
+        
+        if name in self.coordinator.contents:
+            self.variables[name].set(int(self.coordinator.contents[name]))
+        if name in self.coordinator.settings:
+            self.variables[name].set(int(self.coordinator.settings[name]))
 
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
