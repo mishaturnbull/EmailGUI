@@ -87,16 +87,15 @@ CALLBACKS.append(handle_headers)
 
 def handle_autoselectmt(coordinator):
     """Automatically select the multithreading and connection options."""
-    num_emails = int(coordinator.gui.variables['amount'].get())
-    mode, field, conmode = suggest_thread_amt(num_emails)
 
-    if mode == 'none':
-        coordinator.gui.variables['delay'].set(str(field))
-    elif mode == 'limited':
-        coordinator.gui.variables['mt_num'].set(str(field))
+    coordinator.retrieve_data_from_uis()
 
-    coordinator.gui.variables['mt_mode'].set(mode)
-    coordinator.gui.variables['con_mode'].set(str(conmode))
+    settings = suggest_thread_amt(coordinator)
+
+    for key in settings:
+        coordinator.settings[key] = settings[key]
+
+    coordinator.gui.pull_values_from_coordinator()
 
 
 CALLBACKS.append(handle_autoselectmt)
