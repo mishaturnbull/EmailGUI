@@ -13,8 +13,6 @@ import json
 import smtplib
 import os
 
-from helpers import suggest_thread_amt
-
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
     # in py3, range is what xrange was
@@ -38,7 +36,7 @@ except FILE_NOT_FOUND:
 
 # We need to join the message on newlines because it's stored in JSON
 # as an array of strings
-CONFIG['text'] = '\n'.join(CONFIG['text'])
+CONFIG['contents']['text'] = '\n'.join(CONFIG['contents']['text'])
 
 # the SMTP response codes are indexed as strings due to JSON storage
 # requirements, so change those to integers
@@ -62,22 +60,26 @@ parser.add_argument('-c', '--commandline', dest='COMMANDLINE',
                     action='store_const', const=True, default=False,
                     help='pass parameters as arguments to command')
 parser.add_argument('--amount', nargs=1, dest='AMOUNT',
-                    type=int, required=False, default=CONFIG['amount'],
+                    type=int, required=False,
+                    default=CONFIG['settings']['amount'],
                     help='amount of emails to send')
 parser.add_argument('--rcpt', nargs=1, dest='RCPT',
-                    type=str, required=False, default=CONFIG['to'],
+                    type=str, required=False, default=CONFIG['contents']['to'],
                     help='unlucky recipient of emails')
 parser.add_argument('--from', nargs=1, dest='FROM',
-                    type=str, required=False, default=CONFIG['from'],
+                    type=str, required=False,
+                    default=CONFIG['contents']['account'],
                     help='your (sender\'s) email address')
 parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
                     type=str, required=False,
                     help='your (sender\'s) email password')
 parser.add_argument('--server', nargs=1, dest='SERVER',
-                    type=str, required=False, default=CONFIG['server'],
+                    type=str, required=False,
+                    default=CONFIG['settings']['server'],
                     help='smtp server to send emails from')
 parser.add_argument('--max-retries', nargs=1, dest='MAX_RETRIES',
-                    type=int, required=False, default=CONFIG['max_retries'],
+                    type=int, required=False,
+                    default=CONFIG['settings']['max_retries'],
                     help='the maximum number of times the program will'
                          ' attempt to reconnect to the server if ocnnection'
                          ' is lost')
@@ -85,32 +87,42 @@ args = parser.parse_args()
 
 if isinstance(args.AMOUNT, list):
     # this happens sometimes
-    CONFIG['amount'] = args.AMOUNT[0]
+    CONFIG['settings']['amount'] = args.AMOUNT[0]
 else:
-    CONFIG['amount'] = args.AMOUNT
-CONFIG['to'] = args.RCPT
-CONFIG['from'] = args.FROM
-CONFIG['server'] = args.SERVER
-CONFIG['max_retries'] = args.MAX_RETRIES
-CONFIG['debug'] = args.DEBUG or CONFIG['debug']
-CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
+    CONFIG['settings']['amount'] = args.AMOUNT
+CONFIG['contents']['to'] = args.RCPT
+CONFIG['contents']['from'] = args.FROM
+CONFIG['settings']['server'] = args.SERVER
+CONFIG['settings']['max_retries'] = args.MAX_RETRIES
+CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
 
 
 class FakeSTDOUT(object):
     '''Pretend to be sys.stdout, but write everything to a log AND
     the actual sys.stdout.'''
 
-    def __init__(self, stream, filename):
+    def __init__(self, stream, filename, realtime=False):
         self.terminal = stream
-        self.log = open(filename, 'w')
+        if not realtime:
+            self.log = open(filename, 'w')
         self._filename = filename
+        self.realtime = realtime
 
         self.is_empty = True
 
-    def write(self, message):
+        self.write("----- starting log file -----", True)
+        self.is_empty = True
+
+    def write(self, message, logonly=False):
         '''Impersonate sys.stdout.write()'''
-        self.terminal.write(message)
-        self.log.write(message)
+        if not logonly:
+            self.terminal.write(message)
+
+        if self.realtime:
+            with open(self._filename, 'a') as log:
+                log.write(message)
+        else:
+            self.log.write(message)
 
         self.is_empty = False
 
@@ -120,9 +132,13 @@ class FakeSTDOUT(object):
 
     def FSO_close(self):
         '''Close the log files.'''
-        self.log.close()
+        empty = self.is_empty
+        self.write("----- ending log file -----", True)
+        self.is_empty = empty
+        if not self.realtime:
+            self.log.close()
 
-        if not self.is_empty and not CONFIG['debug']:
+        if not self.is_empty and not CONFIG['settings']['debug']:
             os.remove(self._filename)
 
         return self.terminal
@@ -147,13 +163,13 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 
 try:
     with open("GUI_DOC.template", 'r') as template:
-        GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
-                                         SUBJECT=CONFIG['subject'],
-                                         FROM=CONFIG['from'],
-                                         TO=CONFIG['to'],
-                                         SERVER=CONFIG['server'],
-                                         TEXT=CONFIG['text'],
-                                         ATTACH=CONFIG['attach'])
+        GUI_DOC = template.read().format(AMOUNT=CONFIG['settings']['amount'],
+                                         SUBJECT=CONFIG['contents']['subject'],
+                                         FROM=CONFIG['contents']['from'],
+                                         TO=CONFIG['contents']['to'],
+                                         SERVER=CONFIG['settings']['server'],
+                                         TEXT=CONFIG['contents']['text'],
+                                         ATTACH=CONFIG['contents']['attach'])
 
 except FILE_NOT_FOUND as exc:
     print("Couldn't find necessary template file" +

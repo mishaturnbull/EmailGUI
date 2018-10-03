@@ -17,4 +17,4 @@ install:
 script: 
   - >
       git fetch origin $TRAVIS_BRANCH:$TRAVIS_BRANCH --depth 1;
-      flake8-diff --flake8-options $TRAVIS_BRANCH;
+      flake8-diff --flake8-options --ignore=E999 $TRAVIS_BRANCH;

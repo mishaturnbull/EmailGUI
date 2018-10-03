@@ -4,76 +4,56 @@ Contains 'simpler' helper functions that don't depend on other functionality.
 """
 
 import smtplib
+import ipaddress
+import math
 
-def suggest_thread_amt(num_emails):
-    '''Given a total number of emails to send `num_emails`, determine which
-multithreading mode/settings would likely be the fastest and least likely to
-fail.
 
-Prioritizes likeliehood of success over speed.
+def suggest_thread_amt(coordinator):
+    '''Given the current settings input by the user, determine the
+    best settings for the more advanced tweakables.'''
+    amount = coordinator.settings['amount']
+    server = coordinator.settings['server'].split(':')[0]
+    localp = ipaddress.ip_address(server).is_private
+    recommend = {"mt_mode": 'none',
+                 "mt_num": 0,
+                 "delay": 0,
+                 "con_mode": 'con_once',
+                 "con_num": 0,
+                 "max_retries": 5}
 
-Returns a tuple (mt_mode, mt_num, con_per):
-    :str: mt_mode := one of ['none', 'lim', 'ulim']
-    :int: mt_num := if mt_mode == 'none': one of [0, 180]
-                    if mt_mode == 'lim': in range(1, 16)
-                    if mt_mode == 'ulim': 0
-    :bool: con_per := whether or not a connection should be established
-                      for each email
-
-Note that in the case mt_mode == 'none', mt_num actually does not indicate
-the number of threads to use, but rather a delay factor for intentionally
-slowing down the sending of emails.  This is done to prevent daily send
-quota limits from kicking in (for example, Gmail only allows 500 emails to be
-send in 24 hours.  Sending one email every 3 minutes (180 seconds) will prevent
-emails being blocked by sending less than 500 emails in 24 hours).  However,
-it's often more convient to shoot off 500 emails quickly then wait for tomorrow
-so instead, for num_emails = 500, return ('none', 0).  Only for num_emails>500
-will we return 180.
-'''
-
-    # gmail only allows 15 connections to be open at a time from one IP
-    # address before it throws a 421 error.  this function should
-    # never return a combination which would allow more than 15 active
-    # connections to the server.
-
-    if num_emails == 1:
-        # just one email.  seriously, why use multithreading??
-        return ('none', 0, False)
-
-    elif num_emails <= 15:
-        # only use unlimited if it won't throw 421 errors -- happens above 15
-        return ('ulim', 0, False)
-
-    elif 500 > num_emails > 15:
-        # limited is our best bet here
-        if (num_emails % 15) == 0:
-            # the number of emails divides evenly by 15 - use 15 threads and
-            # each one gets num_emails / 15 emails to send
-            return ('lim', 15, False)
+    if localp:
+        # distribute the work equally among threads as much as possible
+        # easiest to do by square-rooting the value
+        recommend['mt_mode'] = 'limited'
+        recommend['mt_num'] = int(math.sqrt(amount))
+    else:
+        # now we have some thinking to do.  most mail servers don't allow
+        # more than 15 threads, so whatever we do we should maximize
+        # threads up to that point
+        if amount <= 15:
+            recommend['mt_mode'] = 'unlimited'
+        elif amount < 500:
+            recommend['mt_mode'] = 'limited'
+            recommend['mt_num'] = 15
         else:
-            # num_emails does not divide by 15.  trying to use 15 threads will
-            # result in each one having a float value of emails to send, which
-            # makes no sense:
-            #
-            # client: "I want to send 3.3 emails to Joe!"
-            # server: "Wut"
-            #
-            # To avoid this, use 14 threads with the same amount and send
-            # the remainder in a 15th
-            return ('lim', 14, False)
-    elif num_emails == 500:
-        # send 500 emails, but send them in one shot -- often easier, as noted
-        # in the docstring, to send 500 then wait for tomorrow
-        return ('lim', 14, False)
-    elif num_emails > 500:
-        # gmail allows no more than 500 emails in 24 hours
-        # by using a delay of 2.88 minutes (172.8 seconds), we can send 500
-        # emails in exactly 24 hours, thereby never triggering gmail's
-        # send quota limit
-        #
-        # we use 3 minutes (180 seconds) just to be sure that we don't trigger
-        # anti-spam
-        return ('none', 180, True)
+            # at this point, worry about dealing with, for example,
+            # Gmail's limit of 500emails/24hour.  Deal with this by simply
+            # reducing the rate of total sending to a rate that fits that --
+            # approximately 1 email every 180 seconds (3min)
+            recommend['mt_mode'] = 'none'
+            recommend['delay'] = 180
+            recommend['con_mode'] = 'con_per'
+
+    if 500 > amount >= 100:
+        # good idea to reconnect every so often just to make sure that
+        # they're still going through
+        recommend['con_mode'] = 'con_some'
+        recommend['con_num'] = 100
+
+    assert not all(recommend.values()), \
+        "did not successfully make a recommendation"
+
+    return recommend
 
 
 def verify_to(address, serv):
