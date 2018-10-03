@@ -124,7 +124,7 @@ class GUIBase(object):
         for var in self.variables:
             if self.coordinator.settings['debug']:
                 print("  processing " + var + " with " + repr(
-                        self.variables[var].get()))
+                    self.variables[var].get()))
 
             if var in self.coordinator.settings:
                 dic = self.coordinator.settings
@@ -186,22 +186,15 @@ class EmailGUI(GUIBase):
         super(EmailGUI, self).__init__(coordinator)
 
         self._pbar_lock = threading.Lock()
+        # pylint: disable=C0102
+        self.bar = None
 
     def callback_sent(self):
         """Action to take on a sent email."""
         # progress bar update
-        #print("Acquiring pbar lock...")
         self._pbar_lock.acquire()
-        #print(self.bar.__dict__)
         var = self.variables['progressbar']
-        #print('got var = ' + repr(var))
-        #import pdb; pdb.set_trace()
-        val = var.get()
-        #print('got val = ' + repr(val))
-        val += 1
-        #print('incremented = ' + repr(val))
-        var.set(val)
-        #print("Done, releasing lock...")
+        var.set(var.get() + 1)
         self._pbar_lock.release()
 
     def spawn_gui(self):
@@ -266,7 +259,6 @@ class EmailGUI(GUIBase):
         self._add_button('Abort', self.coordinator.callbacks['abort'],
                          row=8, column=1)
         self.variables.update({'progressbar': tk.IntVar()})
-        self.variables['progressbar'].set(0)
         # pylint: disable=C0102
         # "Blacklisted name 'bar'"
         # In this case, 'bar' makes perfect sense and is not

@@ -119,14 +119,16 @@ class EmailSendHandler(threading.Thread):
         self.spawn_worker_threads()
         self.start_workers()
 
-        while not self.is_done:
-            for worker in self.workers:
-                if worker.is_done:
-                    worker.join()
-                    self.workers.remove(worker)
-
-            if not self.workers:
-                self.is_done = True
+# =============================================================================
+#         while not self.is_done:
+#             for worker in self.workers:
+#                 if worker.is_done:
+#                     worker.join()
+#                     self.workers.remove(worker)
+# 
+#             if not self.workers:
+#                 self.is_done = True
+# =============================================================================
 
     def abort(self):
         """
@@ -149,13 +151,6 @@ class EmailSendHandler(threading.Thread):
             print("emailsendhandler received notification of a sent email")
 
         self.coordinator.callback_sent()
-        
-        # try changing the pbar value here instead of gui class, since
-        # tcltk isn't threadsafe
-        #import pdb; pdb.set_trace()
-        gui = self.coordinator.gui
-        var = gui.variables['progressbar']
-        var.set(var.get() + 1)
 
         if self.coordinator.settings['debug']:
             print("emailsendhandler pushed pbar update")
