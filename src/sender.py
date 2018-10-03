@@ -188,7 +188,7 @@ class EmailSender(threading.Thread):
             server = smtplib.SMTP(self.handler.coordinator.settings['server'])
         except ConnectionRefusedError:
             if blocking:
-                time.sleep(self.handler.coordinator.settings[ \
+                time.sleep(self.handler.coordinator.settings[
                     'wait_dur_on_retry'])
                 return self.establish_connection(blocking)
             else:
@@ -219,7 +219,7 @@ class EmailSender(threading.Thread):
         # preconfigure localized options for a reconnection case
         sending = remaining or self.amount
         retries_left = retries_left or \
-                       self.handler.coordinator.settings['max_retries']
+            self.handler.coordinator.settings['max_retries']
 
         try:
 
