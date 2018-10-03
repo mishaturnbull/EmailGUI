@@ -6,7 +6,7 @@ Holds the GUI callback functions.
 import sys
 import webbrowser
 
-from helpers import suggest_thread_amt, verify_to, verify_to_email
+from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
 from header_gui import HeaderGUI
 
@@ -89,7 +89,7 @@ def handle_autoselectmt(coordinator):
     """Automatically select the multithreading and connection options."""
 
     coordinator.retrieve_data_from_uis()
-    
+
     prev_serv = None
 
     try:
@@ -114,13 +114,12 @@ def handle_autoselectmt(coordinator):
             # user said no
             prev_serv = coordinator.settings['server']
             coordinator.settings['server'] = '134.129.156.163'
-        
+
         settings = suggest_thread_amt(coordinator)
         coordinator.settings['server'] = prev_serv
 
     for key in settings:
         coordinator.settings[key] = settings[key]
-        
 
     coordinator.gui.pull_values_from_coordinator()
 

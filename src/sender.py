@@ -119,17 +119,6 @@ class EmailSendHandler(threading.Thread):
         self.spawn_worker_threads()
         self.start_workers()
 
-# =============================================================================
-#         while not self.is_done:
-#             for worker in self.workers:
-#                 if worker.is_done:
-#                     worker.join()
-#                     self.workers.remove(worker)
-# 
-#             if not self.workers:
-#                 self.is_done = True
-# =============================================================================
-
     def abort(self):
         """
         Send the abort signal to all worker threads and attempt to halt
@@ -191,10 +180,19 @@ class EmailSender(threading.Thread):
 
         self.message = self.handler.coordinator.email.getmime()
 
-    def establish_connection(self):
+    def establish_connection(self, blocking=False):
         """Establish a connection to the server specified in
         the handler's settings dictionary.  Returns an smtplib.SMTP object."""
-        server = smtplib.SMTP(self.handler.coordinator.settings['server'])
+
+        try:
+            server = smtplib.SMTP(self.handler.coordinator.settings['server'])
+        except ConnectionRefusedError:
+            if blocking:
+                time.sleep(self.handler.coordinator.settings[ \
+                    'wait_dur_on_retry'])
+                return self.establish_connection(blocking)
+            else:
+                raise
         server.ehlo_or_helo_if_needed()
 
         if server.has_extn("starttls"):
@@ -232,12 +230,13 @@ class EmailSender(threading.Thread):
                 if self.handler.do_abort:
                     raise EmergencyStop("Aborting")
 
-                # violent syntax abuse :)
-                if (self.handler.coordinator.settings['con_mode'] == 'con_per'
-                    or (
-                    self.handler.coordinator.settings['con_mode'] == 'con_some'
-                    and i % self.handler.coordinator.settings['con_num'] == 0
-                    )):
+                con_mode = self.handler.coordinator.settings['con_mode']
+                con_num = self.handler.coordinator.settings['con_num']
+
+                d_per = con_mode == 'con_per'
+                d_some = (con_mode == 'con_some') and (i % con_num == 0)
+
+                if d_per or d_some:
                     server.quit()
                     server = self.establish_connection()
 

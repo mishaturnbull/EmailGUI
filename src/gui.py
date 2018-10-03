@@ -111,7 +111,7 @@ class GUIBase(object):
                              variable=self.variables[name],
                              **box_opts, **self.colors)
         box.grid(**grids)
-        
+
         if name in self.coordinator.contents:
             self.variables[name].set(int(self.coordinator.contents[name]))
         if name in self.coordinator.settings:
@@ -323,7 +323,12 @@ class EmailGUI(GUIBase):
         self._add_entry("con_num", width=4, row=12, column=3, sticky=tk.W)
 
         self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
-        self._add_entry('max_retries', width=2, row=10, column=5, sticky=tk.W)
+        self._add_entry('max_retries', width=4, row=10, column=5, sticky=tk.W)
+
+        self._add_box("wait_on_retry", "Wait for connection",
+                      row=11, column=4, sticky=tk.W)
+        self._add_entry("wait_dur_on_retry", width=4, row=11, column=5,
+                        sticky=tk.W)
 
         self._add_label("Misc. options:", row=9, column=6, sticky=tk.W)
         self._add_box("debug", "Debug mode", row=10, column=6, sticky=tk.W)
@@ -345,7 +350,8 @@ class EmailGUI(GUIBase):
         menu.add_cascade(label='Settings', menu=menu_settings)
 
         menu_settings.add_command(label="Auto-select multithreading",
-                            command=self.coordinator.callbacks['autoselectmt'])
+                                  command=self.coordinator.callbacks[
+                                      'autoselectmt'])
 
         menu_help = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label='Help', menu=menu_help)
