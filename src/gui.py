@@ -62,15 +62,18 @@ class GUIBase(object):
                             self.coordinator.settings['colors']['bg'],
                         }
 
-    def _add_label(self, text, label_opts=None, **grids):
+    def _add_label(self, text, root=None, label_opts=None, **grids):
         """Adds a tk.Label element to the root window and grids it
         using the **args provided."""
         if label_opts is None:
             label_opts = {}
-        tk.Label(self.root, text=text, **label_opts,
+        if root is None:
+            root = self.root
+        tk.Label(root, text=text, **label_opts,
                  **self.colors).grid(**grids)
 
-    def _add_entry(self, varname, width=None, entry_opts=None, **grids):
+    def _add_entry(self, varname, root=None, width=None, entry_opts=None,
+                   **grids):
         """Adds a tk.Entry element to the root window, adds the variable
         to the variables dictionary, and grids it to the window."""
         if entry_opts is None:
@@ -79,9 +82,11 @@ class GUIBase(object):
             width = self.entry_width
         if width is not None:
             entry_opts.update({'width': width})
+        if root is None:
+            root = self.root
         var = tk.StringVar()
         self.variables.update({varname: var})
-        entry = tk.Entry(self.root, textvariable=var, **entry_opts)
+        entry = tk.Entry(root, textvariable=var, **entry_opts)
         entry.grid(**grids)
 
         # check for any default options under the varname
@@ -90,24 +95,27 @@ class GUIBase(object):
         if varname in self.coordinator.settings:
             var.set(self.coordinator.settings[varname])
 
-    def _add_button(self, label, callback, btn_opts=None, **grids):
+    def _add_button(self, label, callback, root=None, btn_opts=None, **grids):
         """Adds a tk.Button element to the root window, configures it,
         and grids it to the root."""
         if btn_opts is None:
             btn_opts = {}
-        btn = tk.Button(self.root, text=label, command=callback,
+        if root is None:
+            root = self.root
+        btn = tk.Button(root, text=label, command=callback,
                         **btn_opts, **self.colors)
         btn.grid(**grids)
 
-    def _add_box(self, name, label, box_opts=None, **grids):
+    def _add_box(self, name, label, root=None, box_opts=None, **grids):
         """Adds a checkbox to the GUI with specified name and options."""
         if box_opts is None:
             box_opts = {}
-
+        if root is None:
+            root = self.root
         self.variables.update({name: tk.IntVar()})
         self.variables[name].set(0)
 
-        box = tk.Checkbutton(self.root, text=label,
+        box = tk.Checkbutton(root, text=label,
                              variable=self.variables[name],
                              **box_opts, **self.colors)
         box.grid(**grids)
@@ -272,66 +280,81 @@ class EmailGUI(GUIBase):
     def spawn_gui_settings(self):
         """Spawn the lower-section GUI settings for multithreading, etc."""
 
+        mtframe = tk.LabelFrame(self.root, text="Multithreading options",
+                                relief=tk.RIDGE, **self.colors)
+        mtframe.grid(row=9, column=0, sticky='w',
+                     columnspan=3, padx=30, pady=4)
+
+        cframe = tk.LabelFrame(self.root, text="Connection options",
+                               relief=tk.RIDGE, **self.colors)
+        cframe.grid(row=9, column=2, rowspan=3, columnspan=4,
+                    padx=30, pady=4, sticky='w')
+
+        oframe = tk.LabelFrame(self.root, text="Misc. options",
+                               relief=tk.RIDGE, **self.colors)
+        oframe.grid(row=9, column=6, padx=30, pady=4, sticky='w')
+
         self.variables.update({"mt_mode": tk.StringVar()})
         self.variables['mt_mode'].set(self.coordinator.settings['mt_mode'])
 
-        self._add_label("Multithreading options:", row=9, column=0,
-                        columnspan=2)
-        rb_none = tk.Radiobutton(self.root, text="None",
+        rb_none = tk.Radiobutton(mtframe, text="None",
                                  variable=self.variables['mt_mode'],
                                  value="none",
                                  **self.colors)
-        rb_none.grid(row=10, column=0, sticky=tk.W)
+        rb_none.grid(row=0, column=0, sticky='nw')
 
-        rb_lim = tk.Radiobutton(self.root, text="Limited",
+        rb_lim = tk.Radiobutton(mtframe, text="Limited",
                                 variable=self.variables['mt_mode'],
                                 value='limited',
                                 **self.colors)
-        rb_lim.grid(row=11, column=0, sticky=tk.W)
+        rb_lim.grid(row=1, column=0, sticky='nw')
 
-        rb_ulim = tk.Radiobutton(self.root, text="Unlimited",
+        rb_ulim = tk.Radiobutton(mtframe, text="Unlimited",
                                  variable=self.variables['mt_mode'],
                                  value="unlimited",
                                  **self.colors)
-        rb_ulim.grid(row=12, column=0, sticky=tk.W)
+        rb_ulim.grid(row=2, column=0, sticky='nw')
 
-        self._add_entry('delay', width=4, row=10, column=1, sticky=tk.W)
-        self._add_entry('mt_num', width=4, row=11, column=1, sticky=tk.W)
-
+        self._add_entry('delay', root=mtframe, width=4,
+                        row=0, column=1, sticky='nw')
+        self._add_entry('mt_num', root=mtframe, width=4,
+                        row=1, column=1, sticky='nw')
         self.variables.update({'con_mode': tk.StringVar()})
         self.variables['con_mode'].set(self.coordinator.settings['con_mode'])
 
-        self._add_label("Connection options:", row=9, column=2, columnspan=4)
-
-        rb_once = tk.Radiobutton(self.root, text="Connect once",
+        rb_once = tk.Radiobutton(cframe, text="Connect once",
                                  variable=self.variables['con_mode'],
                                  value="con_once",
                                  **self.colors)
-        rb_once.grid(row=10, column=2, sticky=tk.W)
+        rb_once.grid(row=0, column=0, sticky=tk.W)
 
-        rb_per = tk.Radiobutton(self.root, text="Connect per send",
+        rb_per = tk.Radiobutton(cframe, text="Connect per send",
                                 variable=self.variables['con_mode'],
                                 value="con_per",
                                 **self.colors)
-        rb_per.grid(row=11, column=2, sticky=tk.W)
+        rb_per.grid(row=1, column=0, sticky=tk.W)
 
-        rb_some = tk.Radiobutton(self.root, text="Connect every n mails:",
+        rb_some = tk.Radiobutton(cframe, text="Connect every n mails:",
                                  variable=self.variables['con_mode'],
                                  value="con_some",
                                  **self.colors)
-        rb_some.grid(row=12, column=2, sticky=tk.W)
-        self._add_entry("con_num", width=4, row=12, column=3, sticky=tk.W)
+        rb_some.grid(row=2, column=0, sticky=tk.W)
+        self._add_entry("con_num", root=cframe, width=4,
+                        row=2, column=1, sticky=tk.W)
 
-        self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
-        self._add_entry('max_retries', width=4, row=10, column=5, sticky=tk.W)
+        self._add_label("Max. retries:", root=cframe, row=0,
+                        column=2, sticky=tk.W)
+        self._add_entry('max_retries', root=cframe,
+                        width=4, row=0, column=3, sticky=tk.W)
 
         self._add_box("wait_on_retry", "Wait for connection",
-                      row=11, column=4, sticky=tk.W)
-        self._add_entry("wait_dur_on_retry", width=4, row=11, column=5,
+                      root=cframe, row=1, column=2, sticky=tk.W)
+        self._add_entry("wait_dur_on_retry",
+                        root=cframe, width=4, row=1, column=3,
                         sticky=tk.W)
 
-        self._add_label("Misc. options:", row=9, column=6, sticky=tk.W)
-        self._add_box("debug", "Debug mode", row=10, column=6, sticky=tk.W)
+        self._add_box("debug", "Debug mode", root=oframe,
+                      row=0, column=0, sticky=tk.W)
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the
