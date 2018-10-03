@@ -118,6 +118,15 @@ class EmailSendHandler(threading.Thread):
         self.create_worker_configurations()
         self.spawn_worker_threads()
         self.start_workers()
+        
+        while not self.is_done:
+            for worker in self.workers:
+                if worker.is_done:
+                    worker.join()
+                    self.workers.remove(worker)
+
+            if not self.workers:
+                self.is_done = True
 
     def abort(self):
         """

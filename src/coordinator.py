@@ -79,7 +79,7 @@ class Coordinator(object):
 
         self.retrieve_data_from_uis()
         self.email.pull_data_from_coordinator()
-        self.sender.run()
+        self.sender.start()
 
     def callback_sent(self):
         """Action to take when an email has been sent."""
