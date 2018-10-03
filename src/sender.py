@@ -237,7 +237,12 @@ class EmailSender(threading.Thread):
                 if self.handler.do_abort:
                     raise EmergencyStop("Aborting")
 
-                if self.handler.coordinator.settings['con_mode'] == 'con_per':
+                # violent syntax abuse :)
+                if (self.handler.coordinator.settings['con_mode'] == 'con_per'
+                    or (
+                    self.handler.coordinator.settings['con_mode'] == 'con_some'
+                    and i % self.handler.coordinator.settings['con_num'] == 0
+                    )):
                     server.quit()
                     server = self.establish_connection()
 

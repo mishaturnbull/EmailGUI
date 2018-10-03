@@ -296,6 +296,13 @@ class EmailGUI(GUIBase):
                                 value="con_per",
                                 **self.colors)
         rb_per.grid(row=11, column=2, sticky=tk.W)
+        
+        rb_some = tk.Radiobutton(self.root, text="Connect every n mails:",
+                                 variable=self.variables['con_mode'],
+                                 value="con_some",
+                                 **self.colors)
+        rb_some.grid(row=12, column=2, sticky=tk.W)
+        self._add_entry("con_num", width=4, row=12, column=3, sticky=tk.W)
 
         self._add_label("Max. retries:", row=10, column=4, sticky=tk.W)
         self._add_entry('max_retries', width=2, row=10, column=5, sticky=tk.W)

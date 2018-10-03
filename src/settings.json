@@ -34,6 +34,7 @@
         "log_stdout": "Email_Log.out",
         "log_stderr": "Email_Log_Err.out",
         "con_mode": "con_once",
+        "con_num": 30,
         "confirmation_msg": [
             "Are you certain you wish to proceed?",
             "This cannot reliably be undone and can have unfortunate results!"
