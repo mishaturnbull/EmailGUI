@@ -54,6 +54,10 @@ class GUIBase(object):
         self.variables = self.boxes = {}
         self.entry_width = self.coordinator.settings['width']
 
+        if 'colors' not in self.coordinator.settings:
+            self.colors = self.buttons = {}
+            return
+
         self.colors = {"background": self.coordinator.settings['colors']['bg'],
                        }
         self.buttons = {"background":
@@ -208,7 +212,7 @@ class EmailGUI(GUIBase):
     def spawn_gui(self):
         """Spawn the entire GUI."""
         self.spawn_gui_basics()
-        self.spawn_gui_settings()
+        self.spawn_gui_notebook()
         self.spawn_gui_menubar()
 
     def spawn_gui_basics(self):
@@ -216,7 +220,7 @@ class EmailGUI(GUIBase):
 
         # start with the window meta
         self.root.title(self.coordinator.settings['title'])
-        self.root.config(background=self.colors['background'])
+#        self.root.config(background=self.colors['background'])
 
         # number of emails
         self._add_label("# Emails:", row=0, column=0, sticky=tk.W)
@@ -277,22 +281,24 @@ class EmailGUI(GUIBase):
                                    maximum=self.coordinator.settings['amount'])
         self.bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
 
-    def spawn_gui_settings(self):
-        """Spawn the lower-section GUI settings for multithreading, etc."""
+    def spawn_gui_notebook(self):
+        """Create the notebook pages."""
+        notebook = ttk.Notebook(self.root)
+        notebook.grid(row=10, column=0, columnspan=6)
 
-        mtframe = tk.LabelFrame(self.root, text="Multithreading options",
+        self.spawn_page_1(notebook)
+        self.spawn_page_2(notebook)
+
+    def spawn_page_1(self, notebook):
+        """Create the elements of the first tab page."""
+
+        page = tk.Frame(notebook, **self.colors)
+        notebook.add(page, text="Sending", compound=tk.TOP)
+
+        mtframe = tk.LabelFrame(page, text="Multithreading options",
                                 relief=tk.RIDGE, **self.colors)
         mtframe.grid(row=9, column=0, sticky='w',
                      columnspan=3, padx=30, pady=4)
-
-        cframe = tk.LabelFrame(self.root, text="Connection options",
-                               relief=tk.RIDGE, **self.colors)
-        cframe.grid(row=9, column=2, rowspan=3, columnspan=4,
-                    padx=30, pady=4, sticky='w')
-
-        oframe = tk.LabelFrame(self.root, text="Misc. options",
-                               relief=tk.RIDGE, **self.colors)
-        oframe.grid(row=9, column=6, padx=30, pady=4, sticky='w')
 
         self.variables.update({"mt_mode": tk.StringVar()})
         self.variables['mt_mode'].set(self.coordinator.settings['mt_mode'])
@@ -319,6 +325,26 @@ class EmailGUI(GUIBase):
                         row=0, column=1, sticky='nw')
         self._add_entry('mt_num', root=mtframe, width=4,
                         row=1, column=1, sticky='nw')
+
+
+        oframe = tk.LabelFrame(page, text="Misc. options",
+                               relief=tk.RIDGE, **self.colors)
+        oframe.grid(row=9, column=6, padx=30, pady=4, sticky='w')
+
+        self._add_box("debug", "Debug mode", root=oframe,
+                      row=0, column=0, sticky=tk.W)
+
+    def spawn_page_2(self, notebook):
+        """Spawn the page with connection options."""
+
+        page = tk.Frame(notebook, **self.colors)
+        notebook.add(page, text="Connection", compound=tk.TOP)
+
+        cframe = tk.LabelFrame(page, text="Connection options",
+                               relief=tk.RIDGE, **self.colors)
+        cframe.grid(row=9, column=2, rowspan=3, columnspan=4,
+                    padx=30, pady=4, sticky='w')
+
         self.variables.update({'con_mode': tk.StringVar()})
         self.variables['con_mode'].set(self.coordinator.settings['con_mode'])
 
@@ -352,9 +378,6 @@ class EmailGUI(GUIBase):
         self._add_entry("wait_dur_on_retry",
                         root=cframe, width=4, row=1, column=3,
                         sticky=tk.W)
-
-        self._add_box("debug", "Debug mode", root=oframe,
-                      row=0, column=0, sticky=tk.W)
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the
