@@ -25,6 +25,8 @@ from __future__ import (division, print_function, generators, absolute_import)
 import sys
 import threading
 
+from gui_addons import Tooltip
+
 if sys.version_info.major == 3:
     import tkinter as tk
     from tkinter import ttk
@@ -36,8 +38,6 @@ elif sys.version_info.major == 2:
     #  will never throw an error
     import Tkinter as tk
     import ttk
-
-from gui_addons import Tooltip
 
 
 class GUIBase(object):
@@ -101,7 +101,7 @@ class GUIBase(object):
             var.set(self.coordinator.contents[varname])
         if varname in self.coordinator.settings:
             var.set(self.coordinator.settings[varname])
-        
+
         return entry
 
     def _add_button(self, label, callback, root=None, btn_opts=None, **grids):
@@ -322,20 +322,20 @@ class EmailGUI(GUIBase):
 
         dbgbox = self._add_box("debug", "Debug mode", root=oframe,
                                row=0, column=0, sticky=tk.W)
-        
+
         Tooltip(dbgbox, text="Not recommended!  Makes program very slow!")
-        
+
         bframe = tk.LabelFrame(page, text="Controls",
                                relief=tk.RIDGE, **self.colors)
         bframe.grid(row=0, column=0, sticky='nw')
-        
+
         self._add_button('Send', self.coordinator.callbacks['send'],
                          root=bframe, row=0, column=0, sticky='n')
         self._add_button('Abort', self.coordinator.callbacks['abort'],
                          root=bframe, row=1, column=0, sticky='n')
         self._add_button('Reset', self.coordinator.callbacks['reset'],
                          root=bframe, row=2, column=0, sticky='n')
-        
+
         # progress bar
         # no helper function here :(
         self._add_label("Progress:", root=page, row=4, column=0, sticky=tk.W)
@@ -402,7 +402,7 @@ class EmailGUI(GUIBase):
 
         menu_email = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label='Email', menu=menu_email)
- 
+
         menu_email.add_command(label="Edit headers",
                                command=self.coordinator.callbacks['headers'])
 

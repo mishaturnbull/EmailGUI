@@ -160,6 +160,14 @@ class EmailSendHandler(threading.Thread):
 
         if self.coordinator.settings['debug']:
             print("emailsendhandler notification actions complete")
+    
+    def pre_delete_actions(self):
+        """Actions to take before being discarded."""
+        if not self.is_done:
+            raise RuntimeError("Cannot reset before completing!")
+        for worker in self.workers:
+            worker.pre_delete_actions()
+        self.workers = None
 
 
 # %% Atom worker thread
@@ -311,3 +319,11 @@ class EmailSender(threading.Thread):
                 self.name, time.time()))
 
         self.send_emails()
+        
+        if self.handler.coordinator.settings['debug']:
+            print("Worker thread {} ending operation at {}".format(
+                self.name, time.time()))
+    
+    def pre_delete_actions(self):
+        """Actions to take before being deleted."""
+        assert self.is_done

@@ -78,7 +78,8 @@ CALLBACKS.append(handle_send)
 
 def handle_reset(coordinator):
     """Reset the program for another round of sending."""
-    messagebox.showwarning("Reset", "Not yet implemented!")
+    coordinator.reset_sender()
+    coordinator.gui.variables['progressbar'].set(0)
 
 
 CALLBACKS.append(handle_reset)

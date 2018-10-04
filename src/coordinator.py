@@ -89,6 +89,12 @@ class Coordinator(object):
         if self.settings['debug']:
             print("coordinator notification actions completed")
 
+    def reset_sender(self):
+        """Discard old sender and generate a new one."""
+        self.sender.pre_delete_actions()
+        self.sender = EmailSendHandler(self)
+        self.retrieve_data_from_uis()
+
 
 if __name__ == '__main__':
     C = Coordinator()
