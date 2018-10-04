@@ -37,6 +37,8 @@ elif sys.version_info.major == 2:
     import Tkinter as tk
     import ttk
 
+from gui_addons import Tooltip
+
 
 class GUIBase(object):
     """Base class for a GUI.  Not to be called to directly."""
@@ -73,8 +75,9 @@ class GUIBase(object):
             label_opts = {}
         if root is None:
             root = self.root
-        tk.Label(root, text=text, **label_opts,
-                 **self.colors).grid(**grids)
+        lbl = tk.Label(root, text=text, **label_opts,
+                       **self.colors).grid(**grids)
+        return lbl
 
     def _add_entry(self, varname, root=None, width=None, entry_opts=None,
                    **grids):
@@ -98,6 +101,8 @@ class GUIBase(object):
             var.set(self.coordinator.contents[varname])
         if varname in self.coordinator.settings:
             var.set(self.coordinator.settings[varname])
+        
+        return entry
 
     def _add_button(self, label, callback, root=None, btn_opts=None, **grids):
         """Adds a tk.Button element to the root window, configures it,
@@ -109,6 +114,7 @@ class GUIBase(object):
         btn = tk.Button(root, text=label, command=callback,
                         **btn_opts, **self.colors)
         btn.grid(**grids)
+        return btn
 
     def _add_box(self, name, label, root=None, box_opts=None, **grids):
         """Adds a checkbox to the GUI with specified name and options."""
@@ -128,6 +134,7 @@ class GUIBase(object):
             self.variables[name].set(int(self.coordinator.contents[name]))
         if name in self.coordinator.settings:
             self.variables[name].set(int(self.coordinator.settings[name]))
+        return box
 
     def dump_values_to_coordinator(self):
         """Sends over all the information needed for a successful email."""
@@ -220,7 +227,6 @@ class EmailGUI(GUIBase):
 
         # start with the window meta
         self.root.title(self.coordinator.settings['title'])
-#        self.root.config(background=self.colors['background'])
 
         # number of emails
         self._add_label("# Emails:", row=0, column=0, sticky=tk.W)
@@ -265,26 +271,10 @@ class EmailGUI(GUIBase):
         self._add_entry('attachments', row=7, column=2, columnspan=8,
                         sticky=tk.W+tk.E)
 
-        # progress bar
-        # no helper function here :(
-        self._add_label("Progress:", row=8, column=0, sticky=tk.W)
-        self._add_button('Abort', self.coordinator.callbacks['abort'],
-                         row=8, column=1)
-        self.variables.update({'progressbar': tk.IntVar()})
-        # pylint: disable=C0102
-        # "Blacklisted name 'bar'"
-        # In this case, 'bar' makes perfect sense and is not
-        # being used as in foo/bar/baz
-        self.bar = ttk.Progressbar(self.root, orient='horizontal', length=600,
-                                   mode='determinate',
-                                   variable=self.variables['progressbar'],
-                                   maximum=self.coordinator.settings['amount'])
-        self.bar.grid(row=8, column=2, columnspan=8, sticky=tk.W)
-
     def spawn_gui_notebook(self):
         """Create the notebook pages."""
         notebook = ttk.Notebook(self.root)
-        notebook.grid(row=10, column=0, columnspan=6)
+        notebook.grid(row=10, column=0, columnspan=10, sticky='nsew')
 
         self.spawn_page_1(notebook)
         self.spawn_page_2(notebook)
@@ -297,8 +287,7 @@ class EmailGUI(GUIBase):
 
         mtframe = tk.LabelFrame(page, text="Multithreading options",
                                 relief=tk.RIDGE, **self.colors)
-        mtframe.grid(row=9, column=0, sticky='w',
-                     columnspan=3, padx=30, pady=4)
+        mtframe.grid(row=0, column=1, sticky='w',)
 
         self.variables.update({"mt_mode": tk.StringVar()})
         self.variables['mt_mode'].set(self.coordinator.settings['mt_mode'])
@@ -329,10 +318,37 @@ class EmailGUI(GUIBase):
 
         oframe = tk.LabelFrame(page, text="Misc. options",
                                relief=tk.RIDGE, **self.colors)
-        oframe.grid(row=9, column=6, padx=30, pady=4, sticky='w')
+        oframe.grid(row=0, column=2, sticky='nw')
 
-        self._add_box("debug", "Debug mode", root=oframe,
-                      row=0, column=0, sticky=tk.W)
+        dbgbox = self._add_box("debug", "Debug mode", root=oframe,
+                               row=0, column=0, sticky=tk.W)
+        
+        Tooltip(dbgbox, text="Not recommended!  Makes program very slow!")
+        
+        bframe = tk.LabelFrame(page, text="Controls",
+                               relief=tk.RIDGE, **self.colors)
+        bframe.grid(row=0, column=0, sticky='nw')
+        
+        self._add_button('Send', self.coordinator.callbacks['send'],
+                         root=bframe, row=0, column=0, sticky='n')
+        self._add_button('Abort', self.coordinator.callbacks['abort'],
+                         root=bframe, row=1, column=0, sticky='n')
+        self._add_button('Reset', self.coordinator.callbacks['reset'],
+                         root=bframe, row=2, column=0, sticky='n')
+        
+        # progress bar
+        # no helper function here :(
+        self._add_label("Progress:", root=page, row=4, column=0, sticky=tk.W)
+        self.variables.update({'progressbar': tk.IntVar()})
+        # pylint: disable=C0102
+        # "Blacklisted name 'bar'"
+        # In this case, 'bar' makes perfect sense and is not
+        # being used as in foo/bar/baz
+        self.bar = ttk.Progressbar(page, orient='horizontal', length=600,
+                                   mode='determinate',
+                                   variable=self.variables['progressbar'],
+                                   maximum=self.coordinator.settings['amount'])
+        self.bar.grid(row=4, column=1, columnspan=9, sticky=tk.W)
 
     def spawn_page_2(self, notebook):
         """Spawn the page with connection options."""
@@ -386,9 +402,7 @@ class EmailGUI(GUIBase):
 
         menu_email = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label='Email', menu=menu_email)
-
-        menu_email.add_command(label="Send",
-                               command=self.coordinator.callbacks['send'])
+ 
         menu_email.add_command(label="Edit headers",
                                command=self.coordinator.callbacks['headers'])
 

@@ -76,6 +76,14 @@ def handle_send(coordinator):
 CALLBACKS.append(handle_send)
 
 
+def handle_reset(coordinator):
+    """Reset the program for another round of sending."""
+    messagebox.showwarning("Reset", "Not yet implemented!")
+
+
+CALLBACKS.append(handle_reset)
+
+
 def handle_headers(coordinator):
     """Spawn the header GUI."""
     hgui = HeaderGUI(coordinator)
