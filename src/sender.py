@@ -252,6 +252,7 @@ class EmailSender(threading.Thread):
 
                 d_per = con_mode == 'con_per'
                 d_some = (con_mode == 'con_some') and (i % con_num == 0)
+                d_some = (not d_some) if i == 0 else d_some
 
                 if d_per or d_some:
                     server.quit()

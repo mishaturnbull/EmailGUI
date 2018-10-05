@@ -42,6 +42,9 @@ class Coordinator(object):
         self.gui = EmailGUI(self)
 
         self.headers.auto_make_basics()
+        
+        
+        self.ready_to_send = True
 
         if self.settings['debug']:
             print("coordinator.__init__: instantiation complete")
@@ -74,12 +77,17 @@ class Coordinator(object):
     def send(self):
         """Send emails as configured."""
 
+        if not self.ready_to_send:
+            raise RuntimeError("Currently not ready to send!")
+
         if self.settings['debug']:
             print("coordinator: send command recieved")
 
         self.retrieve_data_from_uis()
         self.email.pull_data_from_coordinator()
         self.sender.start()
+        
+        self.ready_to_send = False
 
     def callback_sent(self):
         """Action to take when an email has been sent."""
@@ -94,22 +102,29 @@ class Coordinator(object):
         self.sender.pre_delete_actions()
         self.sender = EmailSendHandler(self)
         self.retrieve_data_from_uis()
-
+    
+    def main(self):
+        """Do stuff!"""
+        
+        for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
+            if os.path.exists(log):
+                os.remove(log)
+    
+        sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
+                                realtime=C.settings['debug'])
+        sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
+                                realtime=C.settings['debug'])
+    
+        try:
+            C.gui.spawn_gui()
+            C.gui.run()
+        except Exception as exc:
+            self.callbacks['error']()
+    
+        sys.stdout = sys.stdout.FSO_close()
+        sys.stderr = sys.stderr.FSO_close()
 
 if __name__ == '__main__':
     C = Coordinator()
-
-    for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
-        if os.path.exists(log):
-            os.remove(log)
-
-    sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
-                            realtime=C.settings['debug'])
-    sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
-                            realtime=C.settings['debug'])
-
-    C.gui.spawn_gui()
-    C.gui.run()
-
-    sys.stdout = sys.stdout.FSO_close()
-    sys.stderr = sys.stderr.FSO_close()
+    C.main()
+    

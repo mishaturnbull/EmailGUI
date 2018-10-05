@@ -5,6 +5,7 @@ Holds the GUI callback functions.
 
 import sys
 import webbrowser
+import traceback
 
 from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
@@ -80,6 +81,7 @@ def handle_reset(coordinator):
     """Reset the program for another round of sending."""
     coordinator.reset_sender()
     coordinator.gui.variables['progressbar'].set(0)
+    coordinator.ready_to_send = True
 
 
 CALLBACKS.append(handle_reset)
@@ -156,3 +158,17 @@ def handle_deephelp(coordinator):
 
 
 CALLBACKS.append(handle_deephelp)
+
+
+def handle_error(coordinator):
+    """Display an error message for the user."""
+    
+    helper = tk.Toplevel(coordinator.gui.root)
+    helper.title("Error occurred")
+    txt = scrolledtext.ScrolledText(helper)
+    txt.insert(tk.END, traceback.format_exc(coordinator.last_ext))
+    txt['font'] = ('liberation mono', '10')
+    txt.pack(expand=True, fill='both')
+
+
+CALLBACKS.append(handle_error)
