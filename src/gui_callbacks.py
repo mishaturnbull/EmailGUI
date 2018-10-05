@@ -10,6 +10,7 @@ import traceback
 from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
 from header_gui import HeaderGUI
+from gui_addons import error_more_details
 
 if sys.version_info.major == 3:
     import tkinter as tk
@@ -160,15 +161,24 @@ def handle_deephelp(coordinator):
 CALLBACKS.append(handle_deephelp)
 
 
+def handle_flushlogs(coordinator):
+    """Dump log information."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    
+
+CALLBACKS.append(handle_flushlogs)
+
+
+# don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""
-    
     helper = tk.Toplevel(coordinator.gui.root)
     helper.title("Error occurred")
     txt = scrolledtext.ScrolledText(helper)
-    txt.insert(tk.END, traceback.format_exc(coordinator.last_ext))
-    txt['font'] = ('liberation mono', '10')
-    txt.pack(expand=True, fill='both')
-
-
-CALLBACKS.append(handle_error)
+    tp, val, trace = sys.exc_info()
+    if error_more_details(type(tp), val.args[0]):
+        excmsg = traceback.format_tb(trace)
+        txt.insert(tk.END, excmsg)
+        txt['font'] = ('liberation mono', '10')
+        txt.pack(expand=True, fill='both')

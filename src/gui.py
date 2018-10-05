@@ -322,8 +322,11 @@ class EmailGUI(GUIBase):
 
         dbgbox = self._add_box("debug", "Debug mode", root=oframe,
                                row=0, column=0, sticky=tk.W)
-
         Tooltip(dbgbox, text="Not recommended!  Makes program very slow!")
+        
+        self._add_button("Flush logs",
+                         self.coordinator.callbacks['flushlogs'],
+                         root=oframe, row=1, column=0, sticky='w')
 
         bframe = tk.LabelFrame(page, text="Controls",
                                relief=tk.RIDGE, **self.colors)

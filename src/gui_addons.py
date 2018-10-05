@@ -9,7 +9,7 @@ import sys
 
 if sys.version_info.major == 3:
     import tkinter as tk
-    from tkinter import ttk
+    import tkinter.messagebox as messagebox
 elif sys.version_info.major == 2:
     # pylint: disable=E0401
     # pylint complains about not finding tkMessageBox etc
@@ -17,7 +17,16 @@ elif sys.version_info.major == 2:
     #  but this block will never be executed in py3, and therefore
     #  will never throw an error
     import Tkinter as tk
-    import ttk
+    import tkMessageBox as messagebox
+
+
+def error_more_details(title, message):
+    """Display an error message, and ask if the user wants to see more
+    details."""
+    message = "An error occurred!\n\n" + message + "\n\nWant to see more info?"
+    ans = messagebox._show(title, message, messagebox.ERROR, messagebox.YESNO)
+    return ans == 'yes'
+
 
 class Tooltip:
     '''
@@ -150,12 +159,12 @@ class Tooltip:
                        background=bg,
                        borderwidth=0)
         label = tk.Label(win,
-                          text=self.text,
-                          justify=tk.LEFT,
-                          background=bg,
-                          relief=tk.SOLID,
-                          borderwidth=0,
-                          wraplength=self.wraplength)
+                         text=self.text,
+                         justify=tk.LEFT,
+                         background=bg,
+                         relief=tk.SOLID,
+                         borderwidth=0,
+                         wraplength=self.wraplength)
 
         label.grid(padx=(pad[0], pad[2]),
                    pady=(pad[1], pad[3]),

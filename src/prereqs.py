@@ -129,6 +129,8 @@ class FakeSTDOUT(object):
     def flush(self):
         '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
         self.terminal.flush()
+        self.log.close()
+        self.log = open(self._filename, 'a')
 
     def FSO_close(self):
         '''Close the log files.'''

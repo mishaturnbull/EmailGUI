@@ -118,10 +118,12 @@ class EmailSendHandler(threading.Thread):
         self.create_worker_configurations()
         self.spawn_worker_threads()
         self.start_workers()
-        
+
         while not self.is_done:
             for worker in self.workers:
                 if worker.is_done:
+                    if self.coordinator.settings['debug']:
+                        print("thread manager collecting " + worker.name)
                     worker.join()
                     self.workers.remove(worker)
 
@@ -160,7 +162,7 @@ class EmailSendHandler(threading.Thread):
 
         if self.coordinator.settings['debug']:
             print("emailsendhandler notification actions complete")
-    
+
     def pre_delete_actions(self):
         """Actions to take before being discarded."""
         if not self.is_done:
@@ -251,8 +253,8 @@ class EmailSender(threading.Thread):
                 con_num = self.handler.coordinator.settings['con_num']
 
                 d_per = con_mode == 'con_per'
-                d_some = (con_mode == 'con_some') and (i % con_num == 0)
-                d_some = (not d_some) if i == 0 else d_some
+                d_some = (con_mode == 'con_some') and (i % con_num == 0) \
+                    and (i != 0)
 
                 if d_per or d_some:
                     server.quit()
@@ -307,6 +309,9 @@ class EmailSender(threading.Thread):
         finally:
             self.is_done = True
 
+        if server.sock is not None:
+            server.quit()
+
         if self.handler.coordinator.settings['debug']:
             print("emailsender.send_emails: done and returning")
 
@@ -320,11 +325,11 @@ class EmailSender(threading.Thread):
                 self.name, time.time()))
 
         self.send_emails()
-        
+
         if self.handler.coordinator.settings['debug']:
             print("Worker thread {} ending operation at {}".format(
                 self.name, time.time()))
-    
+
     def pre_delete_actions(self):
         """Actions to take before being deleted."""
         assert self.is_done

@@ -14,7 +14,7 @@ from sender import EmailSendHandler
 from gui import EmailGUI
 
 from prereqs import CONFIG, FakeSTDOUT
-from gui_callbacks import CALLBACKS
+from gui_callbacks import CALLBACKS, handle_error
 
 
 class Coordinator(object):
@@ -42,8 +42,8 @@ class Coordinator(object):
         self.gui = EmailGUI(self)
 
         self.headers.auto_make_basics()
-        
-        
+        self.last_exc = None
+
         self.ready_to_send = True
 
         if self.settings['debug']:
@@ -58,7 +58,11 @@ class Coordinator(object):
 
             def wrapit(cbfunc):
                 def wrapped():
-                    return cbfunc(self)
+                    try:
+                        return cbfunc(self)
+                    except (Exception) as exc:
+                        self.last_exc = exc
+                        handle_error(self)
                 return wrapped
 
             if self.settings['debug']:
@@ -86,7 +90,7 @@ class Coordinator(object):
         self.retrieve_data_from_uis()
         self.email.pull_data_from_coordinator()
         self.sender.start()
-        
+
         self.ready_to_send = False
 
     def callback_sent(self):
@@ -102,29 +106,31 @@ class Coordinator(object):
         self.sender.pre_delete_actions()
         self.sender = EmailSendHandler(self)
         self.retrieve_data_from_uis()
-    
+
     def main(self):
         """Do stuff!"""
-        
+
         for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
             if os.path.exists(log):
                 os.remove(log)
-    
+
         sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
                                 realtime=C.settings['debug'])
         sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
                                 realtime=C.settings['debug'])
-    
+
         try:
             C.gui.spawn_gui()
             C.gui.run()
-        except Exception as exc:
-            self.callbacks['error']()
-    
+        except (ValueError) as exc:
+            print('here')
+            self.last_exc = exc
+            handle_error()
+
         sys.stdout = sys.stdout.FSO_close()
         sys.stderr = sys.stderr.FSO_close()
 
 if __name__ == '__main__':
     C = Coordinator()
     C.main()
-    
+
