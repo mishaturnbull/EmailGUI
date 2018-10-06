@@ -110,7 +110,7 @@ class FakeSTDOUT(object):
 
         self.is_empty = True
 
-        self.write("----- starting log file -----", True)
+        self.write("\n----- starting log file -----\n", True)
         self.is_empty = True
 
     def write(self, message, logonly=False):
@@ -129,13 +129,17 @@ class FakeSTDOUT(object):
     def flush(self):
         '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
         self.terminal.flush()
-        self.log.close()
-        self.log = open(self._filename, 'a')
+
+    def dump_logs(self):
+        """Dump log info already obtained, if any."""
+        if not self.is_empty:
+            self.log.close()
+            self.log = open(self._filename, 'a')
 
     def FSO_close(self):
         '''Close the log files.'''
         empty = self.is_empty
-        self.write("----- ending log file -----", True)
+        self.write("\n----- ending log file -----\n", True)
         self.is_empty = empty
         if not self.realtime:
             self.log.close()

@@ -55,6 +55,7 @@ CALLBACKS.append(handle_abort)
 
 def handle_browse(coordinator):
     """Handle a request to browse the filesystem."""
+    coordinator.gui.root.grab_set()
     filename = filedialog.askopenfilename()
     var = coordinator.gui.variables['attachments']
     if var.get() == '':
@@ -70,6 +71,7 @@ def handle_send(coordinator):
     """Send the emails."""
     coordinator.gui.bar['maximum'] = coordinator.settings['amount']
     msg = '\n'.join(coordinator.settings['confirmation_msg'])
+    coordinator.gui.root.grab_set()
     mboxres = messagebox.askyesno("Confirmation", msg)
     if mboxres:
         coordinator.send()
@@ -110,11 +112,14 @@ def handle_autoselectmt(coordinator):
         # most likely a server address that couldn't be determined to be
         # local or nonlocal
         # ask the user and do some tinkering ;)
+        coordinator.gui.root.grab_set()
         ans = messagebox.askyesnocancel("Settings auto-selection",
                                         "Unable to determine if the server "
                                         "is local or not!  Please select "
                                         "whether or not the specified "
-                                        "server is running locally or not.")
+                                        "server is running locally or not."
+                                        "  If you don't know what this means,"
+                                        " select no.")
         if ans is None:
             # simplest case -- None is returned on cancel.
             return
@@ -177,7 +182,8 @@ def handle_error(coordinator):
     helper.title("Error occurred")
     txt = scrolledtext.ScrolledText(helper)
     tp, val, trace = sys.exc_info()
-    if error_more_details(type(tp), val.args[0]):
+    coordinator.gui.root.grab_set()
+    if error_more_details(type(tp), val.args[0], coordinator.gui.root):
         excmsg = traceback.format_tb(trace)
         txt.insert(tk.END, excmsg)
         txt['font'] = ('liberation mono', '10')
