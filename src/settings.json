@@ -28,6 +28,7 @@
         "mt_num": 0,
         "title": "SpamBotFromHell",
         "debug": false,
+        "realtime": false,
         "delay": 0,
         "max_retries": 5,
         "amount": 10,

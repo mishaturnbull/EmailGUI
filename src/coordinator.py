@@ -13,7 +13,7 @@ from headers import Headers
 from sender import EmailSendHandler
 from gui import EmailGUI
 
-from prereqs import CONFIG, FakeSTDOUT
+from prereqs import CONFIG, FakeSTDOUT, CATCH_EXC
 from gui_callbacks import CALLBACKS, handle_error
 
 
@@ -60,7 +60,7 @@ class Coordinator(object):
                 def wrapped():
                     try:
                         return cbfunc(self)
-                    except (Exception) as exc:
+                    except (CATCH_EXC) as exc:
                         self.last_exc = exc
                         handle_error(self)
                 return wrapped
@@ -115,14 +115,14 @@ class Coordinator(object):
                 os.remove(log)
 
         sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
-                                realtime=C.settings['debug'])
+                                realtime=C.settings['realtime'])
         sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
-                                realtime=C.settings['debug'])
+                                realtime=C.settings['realtime'])
 
         try:
             C.gui.spawn_gui()
             C.gui.run()
-        except (ValueError) as exc:
+        except (CATCH_EXC) as exc:
             print('here')
             self.last_exc = exc
             handle_error()
@@ -130,7 +130,7 @@ class Coordinator(object):
         sys.stdout = sys.stdout.FSO_close()
         sys.stderr = sys.stderr.FSO_close()
 
+
 if __name__ == '__main__':
     C = Coordinator()
     C.main()
-

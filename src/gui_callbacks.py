@@ -168,9 +168,9 @@ CALLBACKS.append(handle_deephelp)
 
 def handle_flushlogs(coordinator):
     """Dump log information."""
-    sys.stdout.flush()
-    sys.stderr.flush()
-    
+    sys.stdout.dump_logs()
+    sys.stderr.dump_logs()
+
 
 CALLBACKS.append(handle_flushlogs)
 

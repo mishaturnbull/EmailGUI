@@ -34,6 +34,8 @@ except FILE_NOT_FOUND:
     sys.stderr.write("Couldn't find config file [settings.json]!")
     sys.exit(0)
 
+CATCH_EXC = Exception
+
 # We need to join the message on newlines because it's stored in JSON
 # as an array of strings
 CONFIG['contents']['text'] = '\n'.join(CONFIG['contents']['text'])
