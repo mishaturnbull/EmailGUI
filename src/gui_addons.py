@@ -20,11 +20,12 @@ elif sys.version_info.major == 2:
     import tkMessageBox as messagebox
 
 
-def error_more_details(title, message):
+def error_more_details(title, message, root):
     """Display an error message, and ask if the user wants to see more
     details."""
     message = "An error occurred!\n\n" + message + "\n\nWant to see more info?"
-    ans = messagebox._show(title, message, messagebox.ERROR, messagebox.YESNO)
+    ans = messagebox._show(title, message, messagebox.ERROR, messagebox.YESNO,
+                           master=root)
     return ans == 'yes'
 
 

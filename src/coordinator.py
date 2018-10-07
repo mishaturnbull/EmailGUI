@@ -123,7 +123,6 @@ class Coordinator(object):
             C.gui.spawn_gui()
             C.gui.run()
         except (CATCH_EXC) as exc:
-            print('here')
             self.last_exc = exc
             handle_error()
 

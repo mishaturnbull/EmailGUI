@@ -178,12 +178,12 @@ CALLBACKS.append(handle_flushlogs)
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""
-    helper = tk.Toplevel(coordinator.gui.root)
-    helper.title("Error occurred")
-    txt = scrolledtext.ScrolledText(helper)
     tp, val, trace = sys.exc_info()
     coordinator.gui.root.grab_set()
     if error_more_details(type(tp), val.args[0], coordinator.gui.root):
+        helper = tk.Toplevel(coordinator.gui.root)
+        helper.title("Error occurred")
+        txt = scrolledtext.ScrolledText(helper)
         excmsg = traceback.format_tb(trace)
         txt.insert(tk.END, excmsg)
         txt['font'] = ('liberation mono', '10')
