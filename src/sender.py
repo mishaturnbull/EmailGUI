@@ -159,6 +159,7 @@ class EmailSendHandler(threading.Thread):
 
         if self.n_sent == self.coordinator.settings['amount']:
             self.is_done = True
+            self.coordinator.gui.root.bell()
 
         if self.coordinator.settings['debug']:
             print("emailsendhandler notification actions complete")
