@@ -109,18 +109,18 @@ class Coordinator(object):
     def main(self):
         """Do stuff!"""
 
-        for log in [C.settings['log_stdout'], C.settings['log_stderr']]:
+        for log in [self.settings['log_stdout'], self.settings['log_stderr']]:
             if os.path.exists(log):
                 os.remove(log)
 
-        sys.stdout = FakeSTDOUT(sys.stdout, C.settings['log_stdout'],
-                                realtime=C.settings['realtime'])
-        sys.stderr = FakeSTDOUT(sys.stderr, C.settings['log_stderr'],
-                                realtime=C.settings['realtime'])
+        sys.stdout = FakeSTDOUT(sys.stdout, self.settings['log_stdout'],
+                                realtime=self.settings['realtime'])
+        sys.stderr = FakeSTDOUT(sys.stderr, self.settings['log_stderr'],
+                                realtime=self.settings['realtime'])
 
         try:
-            C.gui.spawn_gui()
-            C.gui.run()
+            self.gui.spawn_gui()
+            self.gui.run()
         except (CATCH_EXC) as exc:
             self.last_exc = exc
             handle_error()
