@@ -77,18 +77,17 @@ class Coordinator(object):
             print("coordinator.retrieve_data_from_uis: pulling data")
 
         self.gui.dump_values_to_coordinator()
+    
+    def prepare_to_send(self):
+        """Take all the necessary actions to prepare for sending."""
+        if not self.ready_to_send:
+            raise RuntimeError("Currently not ready to send!")
+        
+        self.retrieve_data_from_uis()
+        self.email.pull_data_from_coordinator()
 
     def send(self):
         """Send emails as configured."""
-
-        if not self.ready_to_send:
-            raise RuntimeError("Currently not ready to send!")
-
-        if self.settings['debug']:
-            print("coordinator: send command recieved")
-
-        self.retrieve_data_from_uis()
-        self.email.pull_data_from_coordinator()
         self.sender.start()
 
         self.ready_to_send = False

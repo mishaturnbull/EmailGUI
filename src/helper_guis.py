@@ -83,7 +83,6 @@ class VerificationGUI(GUIBase):
         super(VerificationGUI, self).__init__(coordinator,
                                               coordinator.gui.root)
         self.entry_width = self.entry_width // 3
-        print("self.entry_width = " + str(self.entry_width))
 
         with open("validation.regex", 'r') as regex:
             lines = regex.readlines()

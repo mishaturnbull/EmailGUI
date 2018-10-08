@@ -65,6 +65,9 @@ CALLBACKS.append(handle_browse)
 
 def handle_send(coordinator):
     """Send the emails."""
+    if coordinator.settings['debug']:
+        print("recieved send instruction, beginning firing sequence")
+    coordinator.prepare_to_send()
     coordinator.gui.bar['maximum'] = coordinator.settings['amount']
     msg = '\n'.join(coordinator.settings['confirmation_msg'])
     coordinator.gui.root.grab_set()
