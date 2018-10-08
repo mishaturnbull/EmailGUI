@@ -52,6 +52,7 @@ class GUIBase(object):
             self.root = tk.Tk()
         else:
             self.root = tk.Toplevel(_root)
+        self.root.resizable(False, False)
 
         self.variables = self.boxes = {}
         self.entry_width = self.coordinator.settings['width']
