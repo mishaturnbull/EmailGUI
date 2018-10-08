@@ -6,6 +6,9 @@ Contains 'simpler' helper functions that don't depend on other functionality.
 import smtplib
 import ipaddress
 import math
+import re
+
+from prereqs import VALIDATION_RE
 
 
 def suggest_thread_amt(coordinator):
@@ -81,3 +84,15 @@ def verify_to_email(address, serv, frm, pwd):
     resp = server.rcpt(address)
     server.quit()
     return resp
+
+
+def check_rfc_5322(address):
+    """Given a string representing an email address, determine whether or not
+    it is compliant with the RFC 5322 grammar specification."""
+    # turns out that the RFC 5322 grammar spec is quite complex
+    # thanks to this S.O. answer where I got the regex snippet from
+    # https://stackoverflow.com/a/201378/4612410
+    # credit to user bortzmeyer & community wiki
+    regex = re.compile(VALIDATION_RE)
+    success = regex.search(address)
+    return success is not None

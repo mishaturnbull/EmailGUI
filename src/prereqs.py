@@ -178,6 +178,12 @@ try:
                                          SERVER=CONFIG['settings']['server'],
                                          TEXT=CONFIG['contents']['text'],
                                          ATTACH=CONFIG['contents']['attach'])
+    
+    with open("validation.regex", 'r') as regexfile:
+        lines = regexfile.readlines()
+        VALIDATION_RE = ''
+        for line in lines:
+            VALIDATION_RE += line.strip()
 
 except FILE_NOT_FOUND as exc:
     print("Couldn't find necessary template file" +

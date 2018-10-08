@@ -9,7 +9,7 @@ import traceback
 
 from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
-from header_gui import HeaderGUI
+from helper_guis import HeaderGUI, VerificationGUI
 from gui_addons import error_more_details
 
 if sys.version_info.major == 3:
@@ -35,12 +35,8 @@ CALLBACKS = []
 def handle_verify(coordinator):
     """Spawn the verification window and handle the attempts to verify an
     address."""
-    root = coordinator.gui.root
-    vmen = tk.Toplevel(root)
-    vmen.config(**coordinator.gui.colors)
-    vmen.title("Email Verification")
-    # TODO: finish verify menu
-
+    vgui = VerificationGUI(coordinator)
+    vgui.build_gui()
 
 CALLBACKS.append(handle_verify)
 
