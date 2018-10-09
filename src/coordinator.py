@@ -35,16 +35,17 @@ class Coordinator(object):
         self.callbacks = {}
         self.register_callbacks()
 
-        self.headers = Headers(self, None)
-        self.email = Email(self, self.headers)
-        self.headers.email = self.email
+        self.email = Email(self, None)
         self.sender = EmailSendHandler(self)
         self.gui = EmailGUI(self)
 
-        self.headers.auto_make_basics()
+        #self.headers.auto_make_basics()
         self.last_exc = None
 
         self.ready_to_send = True
+        
+        self.headers = Headers(self, self.email)
+        self.email.headers = self.headers
 
         if self.settings['debug']:
             print("coordinator.__init__: instantiation complete")
@@ -100,10 +101,11 @@ class Coordinator(object):
         if self.settings['debug']:
             print("coordinator notification actions completed")
 
-    def reset_sender(self):
-        """Discard old sender and generate a new one."""
+    def reset(self):
+        """Discard old data and get ready for another send."""
         self.sender.pre_delete_actions()
         self.sender = EmailSendHandler(self)
+        self.email = Email(self, self.headers)
         self.retrieve_data_from_uis()
 
     def main(self):

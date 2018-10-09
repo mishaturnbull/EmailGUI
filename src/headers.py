@@ -26,18 +26,21 @@ class Headers(object):
         self.coordinator = coordinator
         self.email = email
 
-        self.headers = copy.deepcopy(self.coordinator.contents['headers'])
+        self.headers = {}
         self.enabled = {}
-
-        for header in self.headers:
-            self.enabled.update({header: False})
-            if self.headers[header]:
-                self.enabled[header] = True
+        #import pdb; pdb.set_trace()
+        for header in self.coordinator.contents['headers']:
+            self.add_header(header,
+                            self.coordinator.contents['headers'][header])
 
     def add_header(self, header, value):
         """Add a header to the records."""
+        
+        print("adding header: " + header + "|val: " +
+              repr(value) + "/" + repr(type(value)))
 
         self.headers.update({header: value})
+        self.enabled.update({header: bool(value)})
 
     def update_header(self, header, value):
         """Update an existing header with a new value.
@@ -63,24 +66,37 @@ class Headers(object):
     def auto_make_basics(self):
         """Create the basic tags from the Coordinator settings fields."""
         self.add_header('date', formatdate(time.time()))
-        self.add_header('sender', self.coordinator.contents['account'])
-        self.add_header('from', self.coordinator.contents['from'])
+        fields = {'sender': 'account', 'from': 'from'}
+        for field in fields:
+            if field not in self.headers:
+                self.add_header(field,
+                                self.coordinator.contents[fields[field]])
 
     def pull_from_header_gui(self, header_gui):
         """Get all the headers from the GUI."""
         for variable in header_gui.variables:
-            if variable.startswith('enable_'):
-                self.enabled[variable] = bool(
-                    header_gui.variables[variable].get())
-                continue
-
-            if header_gui.variables['enable_' + variable].get() == 1:
-                self.headers[variable] = header_gui.variables[variable].get()
+            print('var: ' + variable + ' |val: ' + 
+                  repr(header_gui.variables[variable].get()))
+            # if we have a control variable
+            if variable.startswith('enabled_'):
+                variable = variable.split('_')[1]
+                self.enabled[variable] = \
+                    header_gui.variables['enabled_' + variable].get() == 1
+            # otherwise, we have the value of the header
             else:
-                self.headers[variable] = ''
+                self.headers[variable] = header_gui.variables[variable].get()
+                
 
     def dump_headers_to_email(self):
         """Send all the header information to the Email class."""
+        if self.coordinator.settings['debug']:
+            print("starting header dump...")
         for header in self.headers:
+            if self.coordinator.settings['debug']:
+                print("  on " + header + "...")
             if self.enabled[header]:
+                if self.coordinator.settings['debug']:
+                    print('  dumping with value ' + repr(self.headers[header]))
                 self.coordinator.email.add_header(header, self.headers[header])
+        if self.coordinator.settings['debug']:
+            print("header dump complete")

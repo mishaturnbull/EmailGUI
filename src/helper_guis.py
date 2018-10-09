@@ -11,8 +11,10 @@ from helpers import verify_to, verify_to_email, check_rfc_5322
 
 if sys.version_info.major == 3:
     import tkinter as tk
+    from tkinter import simpledialog
 elif sys.version_info.major == 2:
     import Tkinter as tk
+    import tkSimpleDialog as simpledialog
 
 
 class HeaderGUI(GUIBase):
@@ -25,7 +27,9 @@ class HeaderGUI(GUIBase):
 
         self.entry_width = self.entry_width // 3
 
-        self.max_rows = 4
+        self._max_rows = 10
+        self._row = 1
+        self._column = 0
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_action)
 
@@ -35,16 +39,22 @@ class HeaderGUI(GUIBase):
         super(HeaderGUI, self)._add_entry(varname, width, entry_opts, **grids)
         self.variables[varname].set(
             self.coordinator.headers.headers[varname])
-
+    
     def _add_box(self, name, label, box_opts=None, **grids):
         """Wrapper for GUIBase's _add_box method.  Auto-enables if the
         corresponding header is enabled."""
-        super(HeaderGUI, self)._add_box(name, label, box_opts, **grids)
-        entryname = name.split('_')[1]
-        if entryname in self.variables:
-            headerval = self.variables[entryname].get()
-            if headerval != '':
-                self.variables['enable_' + entryname].set(1)
+        box_opts = box_opts or {}
+        
+        self.variables.update({'enabled_' + name: tk.IntVar()})
+        if self.variables[name].get() is not '':
+            self.variables['enabled_' + name].set(1)
+        
+        box = tk.Checkbutton(self.root, text=label,
+                             variable=self.variables['enabled_' + name],
+                             **box_opts, **self.colors)
+        box.grid(**grids)
+        
+        return box
 
     def close_action(self):
         """Close the window."""
@@ -55,23 +65,41 @@ class HeaderGUI(GUIBase):
         """Output the values to the header class."""
         self.coordinator.headers.pull_from_header_gui(self)
 
+    def _spawn_field(self, header_name, header_val=None):
+        """Add a header field in the next spot with default name & value."""
+        if self._row >= self._max_rows:
+            self._row = 1
+            self._column += 2
+
+        self._add_entry(header_name, row=self._row, column=self._column+1,
+                        sticky='w')
+        self._add_box(header_name, header_name + ":",
+                      row=self._row, column=self._column, sticky='w')
+
+        self._row += 1
+
+    def _add_custom_header(self):
+        """Add a custom header box."""
+        header = simpledialog.askstring("Add Custom Header",
+                                        "Enter the header name:",
+                                        parent=self.root)
+        if header is None:
+            return  # user hit cancel
+        self.coordinator.headers.add_header(header, "")
+        self._spawn_field(header)
+
     def spawn_gui_basics(self):
         """Spawn the base parts of the GUI."""
 
         self.root.wm_title("Edit Headers")
         self.root.config(**self.colors)
 
-        row = column = 0
+        self._add_button('Add Custom Header', self._add_custom_header,
+                         row=0, column=int(self._column/2), columnspan=2,
+                         sticky='ew')
 
         for header in self.coordinator.headers.headers:
-            self._add_entry(header, row=row, column=column+1, sticky=tk.W)
-            self._add_box("enable_" + header, header.capitalize() + ":",
-                          row=row, column=column, sticky=tk.W)
-
-            row += 1
-            if row >= self.max_rows:
-                row = 0
-                column += 2
+            self._spawn_field(header)
 
 
 class VerificationGUI(GUIBase):

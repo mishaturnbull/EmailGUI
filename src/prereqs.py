@@ -34,7 +34,6 @@ except FILE_NOT_FOUND:
     sys.stderr.write("Couldn't find config file [settings.json]!")
     sys.exit(0)
 
-CATCH_EXC = Exception
 
 # We need to join the message on newlines because it's stored in JSON
 # as an array of strings
@@ -97,6 +96,15 @@ CONFIG['contents']['from'] = args.FROM
 CONFIG['settings']['server'] = args.SERVER
 CONFIG['settings']['max_retries'] = args.MAX_RETRIES
 CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
+
+
+if CONFIG['settings']['debug']:
+    # we don't want to catch exceptions here -- let them fall, and get
+    # a full & proper traceback
+    class NeverGonnaHappenException(Exception): pass
+    CATCH_EXC = NeverGonnaHappenException
+else:
+    CATCH_EXC = Exception
 
 
 class FakeSTDOUT(object):

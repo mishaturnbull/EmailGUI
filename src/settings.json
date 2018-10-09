@@ -13,13 +13,14 @@
             "dispatch a second email in apology."
         ],
         "headers": {
-            "sender": "sender",
-            "from": "russian-hacker@russia.org",
+            "sender": "spambot@slippery-weasel.com",
+            "from": "russian-hacker@slippery-weasel.com",
             "reply-to": "",
             "date": "",
             "message-id": "",
             "comments": "",
-            "keywords": ""
+            "keywords": "",
+            "X-Virus-Scanned": "Debian amavisd-new at 127.0.0.1"
         }
     },
     "settings": {
@@ -27,7 +28,7 @@
         "mt_mode": "none",
         "mt_num": 0,
         "title": "SpamBotFromHell",
-        "debug": false,
+        "debug": true,
         "realtime": false,
         "delay": 0,
         "max_retries": 5,
