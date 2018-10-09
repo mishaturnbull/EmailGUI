@@ -365,7 +365,12 @@ class EmailGUI(GUIBase):
 
         cframe = tk.LabelFrame(page, text="Connection options",
                                relief=tk.RIDGE, **self.colors)
-        cframe.grid(row=9, column=2, rowspan=3, columnspan=4,
+        cframe.grid(row=0, column=0, rowspan=3, columnspan=4,
+                    padx=30, pady=4, sticky='w')
+
+        aframe = tk.LabelFrame(page, text="Protocol options",
+                               relief=tk.RIDGE, **self.colors)
+        aframe.grid(row=0, column=4, rowspan=3, columnspan=2,
                     padx=30, pady=4, sticky='w')
 
         self.variables.update({'con_mode': tk.StringVar()})
@@ -401,6 +406,14 @@ class EmailGUI(GUIBase):
         self._add_entry("wait_dur_on_retry",
                         root=cframe, width=4, row=1, column=3,
                         sticky='w')
+
+        tls = self._add_box("use_starttls", "Use STARTTLS",
+                            root=aframe, row=0, column=0, sticky='w')
+        Tooltip(tls, text="Use STARTTLS if server allows it.")
+
+        auth = self._add_box("use_auth", "Use AUTH",
+                             root=aframe, row=1, column=0, sticky='w')
+        Tooltip(auth, text="Use AUTH if server allows it.")
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the

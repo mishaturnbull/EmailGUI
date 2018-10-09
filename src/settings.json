@@ -43,7 +43,9 @@
             "Are you certain you wish to proceed?",
             "This cannot reliably be undone and can have unfortunate results!"
         ],
-        "width": 100
+        "width": 100,
+        "use_starttls": true,
+        "use_auth": true
     },
     "SMTP_resp_codes": {
         "200": "Nonstandard success response",

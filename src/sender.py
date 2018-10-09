@@ -215,11 +215,13 @@ class EmailSender(threading.Thread):
                 raise
         server.ehlo_or_helo_if_needed()
 
-        if server.has_extn("starttls"):
+        if server.has_extn("starttls") and \
+           self.handler.coordinator.settings['use_starttls']:
             server.starttls()
             server.ehlo()
 
-        if server.has_extn("auth"):
+        if server.has_extn("auth") and \
+           self.handler.coordinator.settings['use_auth']:
             server.login(self.handler.coordinator.settings['from'],
                          self.handler.coordinator.settings['password'])
 

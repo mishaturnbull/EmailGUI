@@ -81,6 +81,7 @@ class HeaderGUI(GUIBase):
 
     def _add_custom_header(self):
         """Add a custom header box."""
+        self.root.grab_set()
         header = simpledialog.askstring("Add Custom Header",
                                         "Enter the header name:",
                                         parent=self.root)

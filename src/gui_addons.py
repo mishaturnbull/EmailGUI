@@ -69,6 +69,15 @@ class Tooltip:
                  text='widget info',
                  waittime=400,
                  wraplength=250):
+        """
+        Create a tooltip.
+        :widget: The widget to wrap the tooltip on.
+        :bg: Like "#FFFFEA".  Str.  Background color.
+        :pad: (int, int, int, int).  Padding around tooltip.
+        :text: Str.  Text to display.
+        :waittime: Int.  Millisec before displaying.
+        :wraplength: Int.  Max line length before wrapping.
+        """
 
         self.waittime = waittime  # in miliseconds, originally 500
         self.wraplength = wraplength  # in pixels, originally 180
