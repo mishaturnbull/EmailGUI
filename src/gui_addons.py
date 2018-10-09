@@ -54,7 +54,7 @@ class Tooltip:
         - to add customizable background color, padding, waittime and
           wraplength on creation
       by Alberto Vassena on 2016.11.05.
-      
+
     - Copied by mishaturnbull 2018.10.03.  Found on stackoverflow.
 
       Tested on Ubuntu 16.04/16.10, running Python 3.5.2

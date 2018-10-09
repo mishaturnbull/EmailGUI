@@ -12,7 +12,7 @@ REQUIRED_HEADERS = [
     'sender',   # RFC 2822
     'from',     # RFC 2822
     'to',       # ensures delivery
-    ]
+                   ]
 
 
 class Headers(object):

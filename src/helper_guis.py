@@ -33,7 +33,8 @@ class HeaderGUI(GUIBase):
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_action)
 
-    def _add_entry(self, varname, root=None, width=None, entry_opts=None, **grids):
+    def _add_entry(self, varname, root=None, width=None, entry_opts=None, 
+                   **grids):
         """Wrapper for GUIBase's _add_entry method.  Autofills from the
         header sub-dictionary in contents."""
         super(HeaderGUI, self)._add_entry(varname, width, entry_opts, **grids)
@@ -71,7 +72,7 @@ class HeaderGUI(GUIBase):
             self._row = 1
             self._column += 2
 
-        self._add_entry(header_name, row=self._row, column=self._column+1,
+        self._add_entry(header_name, row=self._row, column=(self._column + 1),
                         sticky='w')
         self._add_box(header_name, header_name + ":",
                       row=self._row, column=self._column, sticky='w')
@@ -95,7 +96,7 @@ class HeaderGUI(GUIBase):
         self.root.config(**self.colors)
 
         self._add_button('Add Custom Header', self._add_custom_header,
-                         row=0, column=int(self._column/2), columnspan=2,
+                         row=0, column=int(self._column / 2), columnspan=2,
                          sticky='ew')
 
         for header in self.coordinator.headers.headers:
