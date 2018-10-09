@@ -33,7 +33,7 @@ class HeaderGUI(GUIBase):
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_action)
 
-    def _add_entry(self, varname, root=None, width=None, entry_opts=None, 
+    def _add_entry(self, varname, root=None, width=None, entry_opts=None,
                    **grids):
         """Wrapper for GUIBase's _add_entry method.  Autofills from the
         header sub-dictionary in contents."""

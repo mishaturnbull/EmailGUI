@@ -7,12 +7,11 @@ track of the headers for an Email message.
 from email.utils import formatdate
 import time
 
-REQUIRED_HEADERS = [
-    'date',     # RFC 2822
-    'sender',   # RFC 2822
-    'from',     # RFC 2822
-    'to',       # ensures delivery
-                   ]
+REQUIRED_HEADERS = ['date',     # RFC 2822
+                    'sender',   # RFC 2822
+                    'from',     # RFC 2822
+                    'to',       # ensures delivery
+                    ]
 
 
 class Headers(object):
