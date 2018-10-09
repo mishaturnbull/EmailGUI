@@ -91,23 +91,8 @@ CALLBACKS.append(handle_reset)
 
 def handle_headers(coordinator):
     """Spawn the header GUI."""
-    print('========== pre-headerGUI instantiation ===========')
-    for header in coordinator.headers.headers:
-        value = coordinator.headers.headers[header]
-        print("checking header: " + header + "|val: " +
-              repr(value) + "/" + repr(type(value)))
     hgui = HeaderGUI(coordinator)
-    print('========== post-headerGUI instantiation ===========')
-    for header in coordinator.headers.headers:
-        value = coordinator.headers.headers[header]
-        print("checking header: " + header + "|val: " +
-              repr(value) + "/" + repr(type(value)))
     hgui.spawn_gui_basics()
-    print('========== post-headerGUI build ===========')
-    for header in coordinator.headers.headers:
-        value = coordinator.headers.headers[header]
-        print("checking header: " + header + "|val: " +
-              repr(value) + "/" + repr(type(value)))
 
 
 CALLBACKS.append(handle_headers)

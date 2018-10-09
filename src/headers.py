@@ -35,10 +35,6 @@ class Headers(object):
 
     def add_header(self, header, value):
         """Add a header to the records."""
-        
-        print("adding header: " + header + "|val: " +
-              repr(value) + "/" + repr(type(value)))
-
         self.headers.update({header: value})
         self.enabled.update({header: bool(value)})
 
@@ -75,8 +71,6 @@ class Headers(object):
     def pull_from_header_gui(self, header_gui):
         """Get all the headers from the GUI."""
         for variable in header_gui.variables:
-            print('var: ' + variable + ' |val: ' + 
-                  repr(header_gui.variables[variable].get()))
             # if we have a control variable
             if variable.startswith('enabled_'):
                 variable = variable.split('_')[1]

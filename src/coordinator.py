@@ -38,14 +38,12 @@ class Coordinator(object):
         self.email = Email(self, None)
         self.sender = EmailSendHandler(self)
         self.gui = EmailGUI(self)
+        self.headers = Headers(self, self.email)
+        self.email.headers = self.headers
 
         #self.headers.auto_make_basics()
         self.last_exc = None
-
         self.ready_to_send = True
-        
-        self.headers = Headers(self, self.email)
-        self.email.headers = self.headers
 
         if self.settings['debug']:
             print("coordinator.__init__: instantiation complete")
