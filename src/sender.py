@@ -300,8 +300,8 @@ class EmailSender(threading.Thread):
                 print("Server disconnected.  "
                       "Trying again... {} tries left.".format(retries_left),
                       file=sys.stderr)
-                self.send_emails(remaining=sending-i,
-                                 retries_left=retries_left-1)
+                self.send_emails(remaining=(sending - i),
+                                 retries_left=(retries_left - 1))
             else:
                 raise
         except EmergencyStop:

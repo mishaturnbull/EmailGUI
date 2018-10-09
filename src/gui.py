@@ -230,47 +230,47 @@ class EmailGUI(GUIBase):
         self.root.title(self.coordinator.settings['title'])
 
         # number of emails
-        self._add_label("# Emails:", row=0, column=0, sticky=tk.W)
-        self._add_entry('amount', width=3, row=0, column=1, sticky=tk.W+tk.E)
+        self._add_label("# Emails:", row=0, column=0, sticky='w')
+        self._add_entry('amount', width=3, row=0, column=1, sticky='ew')
 
         # to field
-        self._add_label("Recipient(s):", row=1, column=0, sticky=tk.W)
+        self._add_label("Recipient(s):", row=1, column=0, sticky='w')
         self._add_button("Verify", self.coordinator.callbacks['verify'],
                          row=1, column=1)
         self._add_entry('to', row=1, column=2, columnspan=8,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
         # from field
-        self._add_label("Sender(s):", row=2, column=0, sticky=tk.W)
+        self._add_label("Sender(s):", row=2, column=0, sticky='w')
         self._add_entry('account', row=2, column=1, columnspan=9,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
         # password field
-        self._add_label("Password(s):", row=3, column=0, sticky=tk.W)
+        self._add_label("Password(s):", row=3, column=0, sticky='w')
         self._add_entry('password', entry_opts={'show': '*'},
-                        row=3, column=1, columnspan=9, sticky=tk.W+tk.E)
+                        row=3, column=1, columnspan=9, sticky='ew')
 
         # subject field
-        self._add_label("Subject line:", row=4, column=0, sticky=tk.W)
+        self._add_label("Subject line:", row=4, column=0, sticky='w')
         self._add_entry('subject', row=4, column=1, columnspan=9,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
         # text field
-        self._add_label("Email message:", row=5, column=0, sticky=tk.W)
+        self._add_label("Email message:", row=5, column=0, sticky='w')
         self._add_entry('text', row=5, column=1, columnspan=9,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
         # server
-        self._add_label("Server:", row=6, column=0, sticky=tk.W)
+        self._add_label("Server:", row=6, column=0, sticky='w')
         self._add_entry('server', row=6, column=1, columnspan=9,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
         # attachments
-        self._add_label("Attachments:", row=7, column=0, sticky=tk.W)
+        self._add_label("Attachments:", row=7, column=0, sticky='w')
         self._add_button("Browse", self.coordinator.callbacks['browse'],
                          row=7, column=1)
         self._add_entry('attachments', row=7, column=2, columnspan=8,
-                        sticky=tk.W+tk.E)
+                        sticky='ew')
 
     def spawn_gui_notebook(self):
         """Create the notebook pages."""
@@ -316,19 +316,18 @@ class EmailGUI(GUIBase):
         self._add_entry('mt_num', root=mtframe, width=4,
                         row=1, column=1, sticky='nw')
 
-
         oframe = tk.LabelFrame(page, text="Misc. options",
                                relief=tk.RIDGE, **self.colors)
         oframe.grid(row=0, column=2, sticky='nw')
 
         dbgbox = self._add_box("debug", "Debug mode", root=oframe,
-                               row=0, column=0, sticky=tk.W)
+                               row=0, column=0, sticky='w')
         Tooltip(dbgbox, text="Not recommended!  Makes program slow!")
-        
+
         rtlbox = self._add_box("realtime", "Realtime logging", root=oframe,
-                               row=1, column=0, sticky=tk.W)
+                               row=1, column=0, sticky='w')
         Tooltip(rtlbox, text="Not recomended!  Makes program very slow!")
-        
+
         self._add_button("Dump logs",
                          self.coordinator.callbacks['flushlogs'],
                          root=oframe, row=2, column=0, sticky='w')
@@ -346,7 +345,7 @@ class EmailGUI(GUIBase):
 
         # progress bar
         # no helper function here :(
-        self._add_label("Progress:", root=page, row=4, column=0, sticky=tk.W)
+        self._add_label("Progress:", root=page, row=4, column=0, sticky='w')
         self.variables.update({'progressbar': tk.IntVar()})
         # pylint: disable=C0102
         # "Blacklisted name 'bar'"
@@ -356,7 +355,7 @@ class EmailGUI(GUIBase):
                                    mode='determinate',
                                    variable=self.variables['progressbar'],
                                    maximum=self.coordinator.settings['amount'])
-        self.bar.grid(row=4, column=1, columnspan=9, sticky=tk.W)
+        self.bar.grid(row=4, column=1, columnspan=9, sticky='w')
 
     def spawn_page_2(self, notebook):
         """Spawn the page with connection options."""
@@ -376,32 +375,32 @@ class EmailGUI(GUIBase):
                                  variable=self.variables['con_mode'],
                                  value="con_once",
                                  **self.colors)
-        rb_once.grid(row=0, column=0, sticky=tk.W)
+        rb_once.grid(row=0, column=0, sticky='w')
 
         rb_per = tk.Radiobutton(cframe, text="Connect per send",
                                 variable=self.variables['con_mode'],
                                 value="con_per",
                                 **self.colors)
-        rb_per.grid(row=1, column=0, sticky=tk.W)
+        rb_per.grid(row=1, column=0, sticky='w')
 
         rb_some = tk.Radiobutton(cframe, text="Connect every n mails:",
                                  variable=self.variables['con_mode'],
                                  value="con_some",
                                  **self.colors)
-        rb_some.grid(row=2, column=0, sticky=tk.W)
+        rb_some.grid(row=2, column=0, sticky='w')
         self._add_entry("con_num", root=cframe, width=4,
-                        row=2, column=1, sticky=tk.W)
+                        row=2, column=1, sticky='w')
 
         self._add_label("Max. retries:", root=cframe, row=0,
-                        column=2, sticky=tk.W)
+                        column=2, sticky='w')
         self._add_entry('max_retries', root=cframe,
-                        width=4, row=0, column=3, sticky=tk.W)
+                        width=4, row=0, column=3, sticky='w')
 
         self._add_box("wait_on_retry", "Wait for connection",
-                      root=cframe, row=1, column=2, sticky=tk.W)
+                      root=cframe, row=1, column=2, sticky='w')
         self._add_entry("wait_dur_on_retry",
                         root=cframe, width=4, row=1, column=3,
-                        sticky=tk.W)
+                        sticky='w')
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the

@@ -41,7 +41,6 @@ class Coordinator(object):
         self.headers = Headers(self, self.email)
         self.email.headers = self.headers
 
-        #self.headers.auto_make_basics()
         self.last_exc = None
         self.ready_to_send = True
 
@@ -123,7 +122,7 @@ class Coordinator(object):
             self.gui.run()
         except (CATCH_EXC) as exc:
             self.last_exc = exc
-            handle_error()
+            handle_error(self)
 
         sys.stdout = sys.stdout.FSO_close()
         sys.stderr = sys.stderr.FSO_close()

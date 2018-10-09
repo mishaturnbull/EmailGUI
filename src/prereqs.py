@@ -101,7 +101,8 @@ CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
 if CONFIG['settings']['debug']:
     # we don't want to catch exceptions here -- let them fall, and get
     # a full & proper traceback
-    class NeverGonnaHappenException(Exception): pass
+    class NeverGonnaHappenException(Exception):
+        pass
     CATCH_EXC = NeverGonnaHappenException
 else:
     CATCH_EXC = Exception
@@ -186,7 +187,7 @@ try:
                                          SERVER=CONFIG['settings']['server'],
                                          TEXT=CONFIG['contents']['text'],
                                          ATTACH=CONFIG['contents']['attach'])
-    
+
     with open("validation.regex", 'r') as regexfile:
         lines = regexfile.readlines()
         VALIDATION_RE = ''

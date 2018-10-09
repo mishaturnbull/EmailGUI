@@ -6,7 +6,6 @@ track of the headers for an Email message.
 
 from email.utils import formatdate
 import time
-import copy
 
 REQUIRED_HEADERS = [
     'date',     # RFC 2822
@@ -28,7 +27,6 @@ class Headers(object):
 
         self.headers = {}
         self.enabled = {}
-        #import pdb; pdb.set_trace()
         for header in self.coordinator.contents['headers']:
             self.add_header(header,
                             self.coordinator.contents['headers'][header])
@@ -79,7 +77,6 @@ class Headers(object):
             # otherwise, we have the value of the header
             else:
                 self.headers[variable] = header_gui.variables[variable].get()
-                
 
     def dump_headers_to_email(self):
         """Send all the header information to the Email class."""

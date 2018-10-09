@@ -33,27 +33,27 @@ class HeaderGUI(GUIBase):
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_action)
 
-    def _add_entry(self, varname, width=None, entry_opts=None, **grids):
+    def _add_entry(self, varname, root=None, width=None, entry_opts=None, **grids):
         """Wrapper for GUIBase's _add_entry method.  Autofills from the
         header sub-dictionary in contents."""
         super(HeaderGUI, self)._add_entry(varname, width, entry_opts, **grids)
         self.variables[varname].set(
             self.coordinator.headers.headers[varname])
-    
-    def _add_box(self, name, label, box_opts=None, **grids):
+
+    def _add_box(self, name, label, root=None, box_opts=None, **grids):
         """Wrapper for GUIBase's _add_box method.  Auto-enables if the
         corresponding header is enabled."""
         box_opts = box_opts or {}
-        
+
         self.variables.update({'enabled_' + name: tk.IntVar()})
-        if self.variables[name].get() is not '':
+        if self.variables[name].get() != '':
             self.variables['enabled_' + name].set(1)
-        
+
         box = tk.Checkbutton(self.root, text=label,
                              variable=self.variables['enabled_' + name],
                              **box_opts, **self.colors)
         box.grid(**grids)
-        
+
         return box
 
     def close_action(self):
@@ -65,7 +65,7 @@ class HeaderGUI(GUIBase):
         """Output the values to the header class."""
         self.coordinator.headers.pull_from_header_gui(self)
 
-    def _spawn_field(self, header_name, header_val=None):
+    def _spawn_field(self, header_name):
         """Add a header field in the next spot with default name & value."""
         if self._row >= self._max_rows:
             self._row = 1
@@ -185,7 +185,8 @@ class VerificationGUI(GUIBase):
         resp = verify_to_email(self.coordinator.gui.variables['to'].get(),
                                serv,
                                self.coordinator.gui.variables['account'].get(),
-                               self.coordinator.gui.variables['password'].get())
+                               self.coordinator.gui.variables[
+                                   'password'].get())
         resp = resp[0]
         if resp == 550:
             msg = str(resp) + " Email appears invalid."

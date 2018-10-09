@@ -38,6 +38,7 @@ def handle_verify(coordinator):
     vgui = VerificationGUI(coordinator)
     vgui.build_gui()
 
+
 CALLBACKS.append(handle_verify)
 
 
