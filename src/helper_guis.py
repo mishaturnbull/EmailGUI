@@ -23,15 +23,14 @@ class HeaderGUI(GUIBase):
 
     def __init__(self, coordinator):
         """Instantiate the header menu."""
-        super(HeaderGUI, self).__init__(coordinator, coordinator.gui.root)
+        super(HeaderGUI, self).__init__(coordinator, coordinator.gui.root,
+             name='headers')
 
         self.entry_width = self.entry_width // 3
 
         self._max_rows = 10
         self._row = 1
         self._column = 0
-
-        self.root.protocol("WM_DELETE_WINDOW", self.close_action)
 
     def _add_entry(self, varname, root=None, width=None, entry_opts=None,
                    **grids):
@@ -60,7 +59,6 @@ class HeaderGUI(GUIBase):
     def close_action(self):
         """Close the window."""
         self.dump_values_to_headers()
-        self.root.destroy()
 
     def dump_values_to_headers(self):
         """Output the values to the header class."""
@@ -111,7 +109,8 @@ class VerificationGUI(GUIBase):
     def __init__(self, coordinator):
         """Instantiate the VerificationGUI."""
         super(VerificationGUI, self).__init__(coordinator,
-                                              coordinator.gui.root)
+                                              coordinator.gui.root,
+                                              'verification')
         self.entry_width = self.entry_width // 3
 
         with open("validation.regex", 'r') as regex:

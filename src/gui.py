@@ -24,6 +24,7 @@ from __future__ import (division, print_function, generators, absolute_import)
 
 import sys
 import threading
+import uuid
 
 from gui_addons import Tooltip
 
@@ -43,10 +44,12 @@ elif sys.version_info.major == 2:
 class GUIBase(object):
     """Base class for a GUI.  Not to be called to directly."""
 
-    def __init__(self, coordinator, _root=None):
+    def __init__(self, coordinator, _root=None, name=None):
         """Instantiate the GUI."""
 
         self.coordinator = coordinator
+        self.name = name or uuid.uuid4()
+        self.coordinator.register_gui_state_change(self.name, self, 'active')
 
         if _root is None:
             self.root = tk.Tk()
@@ -59,15 +62,27 @@ class GUIBase(object):
 
         if 'colors' not in self.coordinator.settings:
             self.colors = self.buttons = {}
-            return
-
-        self.colors = {"background": self.coordinator.settings['colors']['bg'],
-                       }
-        self.buttons = {"background":
-                        self.coordinator.settings['colors']['buttons'],
-                        "activebackground":
-                            self.coordinator.settings['colors']['bg'],
-                        }
+        else:
+            self.colors = {"background": 
+                           self.coordinator.settings['colors']['bg'],
+                           }
+            self.buttons = {"background":
+                            self.coordinator.settings['colors']['buttons'],
+                            "activebackground":
+                                self.coordinator.settings['colors']['bg'],
+                            }
+        
+        self.root.protocol("WM_DELETE_WINDOW", self._close_action)
+    
+    def _close_action(self):
+        """Calls the custom close actions then destroys the window."""
+        self.close_action()
+        self.coordinator.register_gui_state_change(self.name, self, 'inactive')
+        self.root.destroy()
+    
+    def close_action(self):
+        """To be overriden by subclasses."""
+        pass
 
     def _add_label(self, text, root=None, label_opts=None, **grids):
         """Adds a tk.Label element to the root window and grids it
@@ -144,7 +159,8 @@ class GUIBase(object):
         for var in self.variables:
             if self.coordinator.settings['debug']:
                 print("  processing " + var + " with " + repr(
-                    self.variables[var].get()))
+                    self.variables[var].get()) + "/" + repr(type(
+                            self.variables[var].get())))
 
             if var in self.coordinator.settings:
                 dic = self.coordinator.settings
@@ -203,7 +219,7 @@ class EmailGUI(GUIBase):
 
     def __init__(self, coordinator):
         '''Start the class, and make stuff happen.'''
-        super(EmailGUI, self).__init__(coordinator)
+        super(EmailGUI, self).__init__(coordinator, name='main')
 
         self._pbar_lock = threading.Lock()
         # pylint: disable=C0102

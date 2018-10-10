@@ -34,6 +34,7 @@ class Coordinator(object):
         self.contents = copy.deepcopy(CONFIG['contents'])
         self.callbacks = {}
         self.register_callbacks()
+        self.active_guis = {}
 
         self.email = Email(self, None)
         self.sender = EmailSendHandler(self)
@@ -67,6 +68,23 @@ class Coordinator(object):
                 print("coordinator.register_callbacks: registering " + cbname)
 
             self.callbacks.update({cbname: wrapit(cb)})
+    
+    def register_gui_state_change(self, guiname, gui, state):
+        """Change the state of a submenu.
+        
+        State should be one of 'active' or 'inactive'."""
+        if guiname in self.active_guis:
+            if state == 'inactive':
+                g = self.active_guis.pop(guiname)
+            elif state == 'active':
+                g = self.active_guis[guiname]
+        else:
+            if state == 'active':
+                self.active_guis.update({guiname: gui})
+                g = self.register_gui_state_change(guiname, gui, state)
+            elif state == 'inactive':
+                g = gui
+        return g
 
     def retrieve_data_from_uis(self):
         """Get all the data from various UI elements."""
