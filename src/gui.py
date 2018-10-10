@@ -205,7 +205,10 @@ class GUIBase(object):
             else:
                 continue
 
-            val = str(dsel[key])
+            if isinstance(self.variables[key], tk.IntVar):
+                val = int(dsel[key])
+            elif isinstance(self.variables[key], tk.StringVar):
+                val = str(dsel[key])
             self.variables[key].set(val)
 
     def run(self):
@@ -273,7 +276,9 @@ class EmailGUI(GUIBase):
 
         # text field
         self._add_label("Email message:", row=5, column=0, sticky='w')
-        self._add_entry('text', row=5, column=1, columnspan=9,
+        self._add_button("Edit", self.coordinator.callbacks['emailEditWindow'],
+                         row=5, column=1)
+        self._add_entry('text', row=5, column=2, columnspan=8,
                         sticky='ew')
 
         # server

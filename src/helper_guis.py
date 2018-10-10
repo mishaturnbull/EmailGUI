@@ -12,9 +12,11 @@ from helpers import verify_to, verify_to_email, check_rfc_5322
 if sys.version_info.major == 3:
     import tkinter as tk
     from tkinter import simpledialog
+    from tkinter import scrolledtext
 elif sys.version_info.major == 2:
     import Tkinter as tk
     import tkSimpleDialog as simpledialog
+    import tkScrolledText as scrolledtext
 
 
 class HeaderGUI(GUIBase):
@@ -225,3 +227,53 @@ class VerificationGUI(GUIBase):
                          row=6, column=0, sticky='w')
         self._add_changinglabel("", 'output_email', row=6, column=1,
                                 sticky='w')
+
+
+class EmailEditorGUI(GUIBase):
+    """This class is responsible for handling email editing in a blown-up
+    window.  It is also capable of adding/removing payloads and attachments.
+    """
+    
+    def __init__(self, coordinator):
+        """Instantiate the editor GUI instance."""
+        super(EmailEditorGUI, self).__init__(coordinator,
+                                             coordinator.gui.root,
+                                             'editor')
+    
+    def close_action(self):
+        """Deregister the GUI with the coordinator."""
+        self.sync_to_main()
+    
+    def sync_from_main(self):
+        """Pull the data (message) from the coordinator."""
+        self.editor.insert(tk.END, self.coordinator.contents['text'])
+    
+    def sync_to_main(self):
+        """Push data (message) back to coordinator."""
+        # 'end-1c' comes from a SO answer
+        # credit to Bryan Oakley
+        # https://stackoverflow.com/a/14824164/4612410
+        self.coordinator.contents['text'] = self.editor.get("1.0", 'end-1c')
+        self.coordinator.active_guis['main'].pull_values_from_coordinator()
+    
+    def spawn_gui_elements(self):
+        """Create the GUI elements necessary."""
+        leftframe = tk.LabelFrame(self.root, text="Payloads",
+                                  relief=tk.RIDGE, **self.colors)
+        leftframe.grid(row=0, column=0, rowspan=4, columnspan=1, sticky='w')
+        
+        rightframe = tk.Frame(self.root, **self.colors)
+        rightframe.grid(row=0, column=1, rowspan=10, columnspan=10,
+                        sticky='nesw')
+        
+        self.editor = scrolledtext.ScrolledText(rightframe,
+                                                wrap    = tk.WORD,
+                                                width   = 60,
+                                                height  = 20)
+        self.editor.grid(row=0, column=0)
+        
+        self._add_button('Random Payload', 
+                         self.coordinator.callbacks['addRandomPayload'],
+                         root=leftframe,
+                         row=0, column=0, sticky='ew')
+        

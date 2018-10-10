@@ -9,14 +9,16 @@ import traceback
 
 from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
-from helper_guis import HeaderGUI, VerificationGUI
+from helper_guis import HeaderGUI, VerificationGUI, EmailEditorGUI
 from gui_addons import error_more_details
+from emailbuilder import PayloadGenerator
 
 if sys.version_info.major == 3:
     import tkinter as tk
     import tkinter.messagebox as messagebox
     import tkinter.filedialog as filedialog
     import tkinter.scrolledtext as scrolledtext
+    import tkinter.simpledialog as simpledialog
 elif sys.version_info.major == 2:
     # pylint: disable=E0401
     # pylint complains about not finding tkMessageBox etc
@@ -27,6 +29,7 @@ elif sys.version_info.major == 2:
     import tkMessageBox as messagebox
     import tkFileDialog as filedialog
     import ScrolledText as scrolledtext
+    import tkSimpleDialog as simpledialog
 
 
 CALLBACKS = []
@@ -173,6 +176,30 @@ def handle_flushlogs(coordinator):
 
 
 CALLBACKS.append(handle_flushlogs)
+
+
+def handle_emailEditWindow(coordinator):
+    """Spawn the more in-depth email editor."""
+    egui = EmailEditorGUI(coordinator)
+    egui.spawn_gui_elements()
+    egui.sync_from_main()
+
+
+CALLBACKS.append(handle_emailEditWindow)
+
+
+def handle_addRandomPayload(coordinator):
+    """Prompt for payload size and add a random text payload."""
+    editor = coordinator.active_guis['editor']
+    editor.root.grab_set()
+    nbytes = simpledialog.askinteger("Add Payload",
+                                     "How many bytes should the payload be?",
+                                     parent=editor.root)
+    text = PayloadGenerator(coordinator).get_random_text(nbytes)
+    coordinator.email.add_text(text)
+
+
+CALLBACKS.append(handle_addRandomPayload)
 
 
 # don't add this to CALLBACKS

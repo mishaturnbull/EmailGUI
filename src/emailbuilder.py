@@ -10,6 +10,43 @@ from email.mime.text import MIMEText
 from email import encoders
 
 import os
+from sys import getsizeof
+
+
+class PayloadGenerator(object):
+    """
+    This class is responsible for generating random payloads of different
+    types and sizes.
+    """
+
+    def __init__(self, coordinator):
+        """
+        Instantiate the PayloadGenerator object and link it to a Coordinator.
+        """
+        self.coordinator = coordinator
+        self._lorem_ipsum = ''
+
+    def _load_lorem(self):
+        """Check to see if we've loaded the lorem ipsum text, and if not,
+        load it."""
+        if self._lorem_ipsum != '':
+            return
+        with open('lorem.txt', 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            self._lorem_ipsum += line.strip()
+
+    def get_random_text(self, bytecount):
+        """Return a chunk of text with a specified byte count."""
+        out = ""
+        i = 0
+        self._load_lorem()
+        while getsizeof(out) < bytecount:
+            if i >= len(self._lorem_ipsum):
+                i = 0
+            out += self._lorem_ipsum[i]
+            i += 1
+        return out
 
 
 class Email(object):
