@@ -26,7 +26,7 @@ class HeaderGUI(GUIBase):
     def __init__(self, coordinator):
         """Instantiate the header menu."""
         super(HeaderGUI, self).__init__(coordinator, coordinator.gui.root,
-             name='headers')
+                                        name='headers')
 
         self.entry_width = self.entry_width // 3
 
@@ -233,21 +233,21 @@ class EmailEditorGUI(GUIBase):
     """This class is responsible for handling email editing in a blown-up
     window.  It is also capable of adding/removing payloads and attachments.
     """
-    
+
     def __init__(self, coordinator):
         """Instantiate the editor GUI instance."""
         super(EmailEditorGUI, self).__init__(coordinator,
                                              coordinator.gui.root,
                                              'editor')
-    
+
     def close_action(self):
         """Deregister the GUI with the coordinator."""
         self.sync_to_main()
-    
+
     def sync_from_main(self):
         """Pull the data (message) from the coordinator."""
         self.editor.insert(tk.END, self.coordinator.contents['text'])
-    
+
     def sync_to_main(self):
         """Push data (message) back to coordinator."""
         # 'end-1c' comes from a SO answer
@@ -255,25 +255,24 @@ class EmailEditorGUI(GUIBase):
         # https://stackoverflow.com/a/14824164/4612410
         self.coordinator.contents['text'] = self.editor.get("1.0", 'end-1c')
         self.coordinator.active_guis['main'].pull_values_from_coordinator()
-    
+
     def spawn_gui_elements(self):
         """Create the GUI elements necessary."""
         leftframe = tk.LabelFrame(self.root, text="Payloads",
                                   relief=tk.RIDGE, **self.colors)
         leftframe.grid(row=0, column=0, rowspan=4, columnspan=1, sticky='w')
-        
+
         rightframe = tk.Frame(self.root, **self.colors)
         rightframe.grid(row=0, column=1, rowspan=10, columnspan=10,
                         sticky='nesw')
-        
+
         self.editor = scrolledtext.ScrolledText(rightframe,
-                                                wrap    = tk.WORD,
-                                                width   = 60,
-                                                height  = 20)
+                                                wrap=tk.WORD,
+                                                width=60,
+                                                height=20)
         self.editor.grid(row=0, column=0)
-        
-        self._add_button('Random Payload', 
+
+        self._add_button('Random Payload',
                          self.coordinator.callbacks['addRandomPayload'],
                          root=leftframe,
                          row=0, column=0, sticky='ew')
-        

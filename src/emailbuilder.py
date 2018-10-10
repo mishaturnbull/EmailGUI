@@ -31,8 +31,8 @@ class PayloadGenerator(object):
         load it."""
         if self._lorem_ipsum != '':
             return
-        with open('lorem.txt', 'r') as f:
-            lines = f.readlines()
+        with open('lorem.txt', 'r') as lorem:
+            lines = lorem.readlines()
         for line in lines:
             self._lorem_ipsum += line.strip()
 

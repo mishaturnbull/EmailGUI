@@ -63,7 +63,7 @@ class GUIBase(object):
         if 'colors' not in self.coordinator.settings:
             self.colors = self.buttons = {}
         else:
-            self.colors = {"background": 
+            self.colors = {"background":
                            self.coordinator.settings['colors']['bg'],
                            }
             self.buttons = {"background":
@@ -71,15 +71,15 @@ class GUIBase(object):
                             "activebackground":
                                 self.coordinator.settings['colors']['bg'],
                             }
-        
+
         self.root.protocol("WM_DELETE_WINDOW", self._close_action)
-    
+
     def _close_action(self):
         """Calls the custom close actions then destroys the window."""
         self.close_action()
         self.coordinator.register_gui_state_change(self.name, self, 'inactive')
         self.root.destroy()
-    
+
     def close_action(self):
         """To be overriden by subclasses."""
         pass
@@ -160,7 +160,7 @@ class GUIBase(object):
             if self.coordinator.settings['debug']:
                 print("  processing " + var + " with " + repr(
                     self.variables[var].get()) + "/" + repr(type(
-                            self.variables[var].get())))
+                        self.variables[var].get())))
 
             if var in self.coordinator.settings:
                 dic = self.coordinator.settings
