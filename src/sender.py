@@ -108,6 +108,20 @@ class EmailSendHandler(threading.Thread):
                   "sending start command to pool")
         for worker in self.workers:
             worker.start()
+    
+    def init_metrics(self):
+        """
+        Set up the coordinator object's metrics.
+        """
+        
+        self.coordinator.metrics['sending-rate'] = 1
+        self.coordinator.metrics['sending-time'] = 1
+        self.coordinator.metrics['remaining'] = \
+            self.coordinator.settings['amount']
+        self.coordinator.metrics['sent'] = 0
+        self.coordinator.metrics['etr'] = 0
+        self.coordinator.metrics['etc'] = time.time()
+        self.coordinator.metrics['no-active-connections'] = 0
 
     def run(self):
         """
@@ -115,6 +129,7 @@ class EmailSendHandler(threading.Thread):
         Automatically generates sending distribution, worker threads, and
         runs the workers.
         """
+        self.init_metrics()
         self.create_worker_configurations()
         self.worker_bars, self.worker_vars = \
             self.coordinator.gui.add_n_progress_bars(len(self.worker_amounts))
@@ -157,9 +172,37 @@ class EmailSendHandler(threading.Thread):
         if self.coordinator.settings['debug']:
             print("emailsendhandler pushed pbar update")
 
-        self.n_sent += 1
+        self.coordinator.metrics['sent'] += 1
+        self.coordinator.metrics['remaining'] -= 1
+        
+        # we have to average all the thread's sending-time average here..
+        # costly operation, but benefits to ux outweigh the detriments
+        # maybe investigate a toggle switch for metrics?
+        avgs = []
+        for worker in self.workers:
+            avgs.append(worker._sending_time)
+        avg = sum(avgs) / len(avgs)
+        
+        # now compute the sending rate from the time.  inversely proportional
+        rate = 1 / avg
+        
+        self.coordinator.metrics['sending-time'] = avg
+        self.coordinator.metrics['sending-rate'] = rate
+        
+        # est. time remaining
+        # can be computed by remaining / rate
+        self.coordinator.metrics['etr'] = \
+            self.coordinator.metrics['remaining'] / rate
+        
+        # est. time completion
+        # computed by adding time.time() to etr
+        self.coordinator.metrics['etc'] = self.coordinator.metrics['etr'] + \
+            time.time()
+        
+        self.coordinator.gui.pull_metrics_from_coordinator()
 
-        if self.n_sent == self.coordinator.settings['amount']:
+        if self.coordinator.metrics['sent'] == \
+           self.coordinator.settings['amount']:
             self.is_done = True
             self.coordinator.gui.root.bell()
 
@@ -200,6 +243,9 @@ class EmailSender(threading.Thread):
         self.var = self.handler.worker_vars[self.worker_index]
 
         self.is_done = False
+        self.last_delta = 0
+        self._n_sent = 0
+        self._sending_time = 0
 
         self.message = self.handler.coordinator.email.getmime()
 
@@ -235,6 +281,7 @@ class EmailSender(threading.Thread):
         if self.handler.coordinator.settings['debug']:
             server.set_debuglevel(1)
         
+        self.handler.coordinator.metrics['no-active-connections'] += 1
 
         self.bar.stop()
         self.bar.config(mode='determinate')
@@ -260,6 +307,8 @@ class EmailSender(threading.Thread):
             server = self.establish_connection()
     
             for i in range(sending):
+                
+                starttime = time.time()
 
                 if self.handler.do_abort:
                     raise EmergencyStop("Aborting")
@@ -287,8 +336,14 @@ class EmailSender(threading.Thread):
                     print("Sent successfully!")
                 
                 self.var.set(self.var.get() + 1)
+                endtime = time.time()
+                
+                delta = endtime - starttime
+                
+                self._n_sent += 1
+                self._sending_time = self._sending_time + (delta -
+                    self._sending_time) / self._n_sent
                 self.handler.callback_sent(self)
-
                 if self.handler.coordinator.settings['debug']:
                     print("Completed send callback")
 
@@ -301,8 +356,8 @@ class EmailSender(threading.Thread):
                     if self.handler.coordinator.settings['debug']:
                         print("about to sleep for " + str(delay))
                     time.sleep(delay)
-
             server.quit()
+            self.handler.coordinator.metrics['no-active-connections'] -= 1
 
         except smtplib.SMTPServerDisconnected:
             try:

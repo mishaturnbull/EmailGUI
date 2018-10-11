@@ -35,6 +35,14 @@ class Coordinator(object):
         self.callbacks = {}
         self.register_callbacks()
         self.active_guis = {}
+        self.metrics = {'sending-rate': None,
+                        'sending-time': None,
+                        'remaining': None,
+                        'sent': None,
+                        'etr': None,
+                        'etc': None,
+                        'no-active-connections': None,
+                        }
 
         self.email = Email(self, None)
         self.sender = EmailSendHandler(self)
@@ -122,6 +130,9 @@ class Coordinator(object):
         self.sender = EmailSendHandler(self)
         self.email = Email(self, self.headers)
         self.retrieve_data_from_uis()
+        
+        for key in self.metrics:
+            self.metrics[key] = None
 
     def main(self):
         """Do stuff!"""

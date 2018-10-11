@@ -27,6 +27,7 @@ import threading
 import uuid
 
 from gui_addons import Tooltip
+from helpers import time_from_epoch
 
 if sys.version_info.major == 3:
     import tkinter as tk
@@ -465,6 +466,51 @@ class EmailGUI(GUIBase):
                                    maximum=self.coordinator.settings['amount'])
         self.bar.grid(row=1, column=0, columnspan=10, sticky='w')
         
+        self._add_label("#Remaining: ", root=page, row=2, column=0, sticky='w')
+        self._add_changinglabel("0", 'remaining', root=page, row=2,
+                                column=1, sticky='w')
+        self._add_label("Sent: ", root=page, row=2, column=2, sticky='w')
+        self._add_changinglabel("0", 'sent', root=page, row=2,
+                                column=3, sticky='w')
+        self._add_label("Time Remaining: ", root=page, row=2, column=4,
+                        sticky='w')
+        self._add_changinglabel("00:00", 'etr', root=page, row=2,
+                                column=5, sticky='w')
+        self._add_label("E.T.C:", root=page, row=2, column=6, sticky='w')
+        self._add_changinglabel("00:00", 'etc', root=page, row=2,
+                                column=7, sticky='w')
+        ################### ROW SPLIT
+        self._add_label("Mail/sec: ", root=page, row=3, column=0, sticky='w')
+        self._add_changinglabel('0', 'sending-rate', root=page, row=3,
+                                column=1, sticky='w')
+        self._add_label("Time for 1 mail:", root=page, row=3, column=2,
+                        sticky='w')
+        self._add_changinglabel('0', 'sending-time', root=page, row=3,
+                                column=3, sticky='w')
+        self._add_label("Active connections:", root=page, row=3, column=4,
+                        sticky='w')
+        self._add_changinglabel("0", 'no-active-connections', root=page,
+                                row=3, column=5, sticky='w')
+    
+    def pull_metrics_from_coordinator(self):
+        """Grab the metrics from the coordinator, convert to UX-friendly
+        format, and push to display."""
+        
+        def rstr(num):
+            return str(round(num, 2))
+        
+        direct_translations = ['remaining', 'sent', 'no-active-connections']
+        for t in direct_translations:
+            self.variables[t].set(str(self.coordinator.metrics[t]))
+        self.variables['etr'].set(
+                time_from_epoch(self.coordinator.metrics['etr'],
+                                tzconvert=False))
+        self.variables['etc'].set(
+                time_from_epoch(self.coordinator.metrics['etc']))
+        self.variables['sending-rate'].set(
+                rstr(self.coordinator.metrics['sending-rate']) + " / sec")
+        self.variables['sending-time'].set(
+                rstr(self.coordinator.metrics['sending-time']) + " sec")
     
     def add_n_progress_bars(self, n):
         """Add a number of progress bars to the progress window.

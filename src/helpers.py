@@ -7,9 +7,20 @@ import smtplib
 import ipaddress
 import math
 import re
+import time
 
 from prereqs import VALIDATION_RE
 
+def time_from_epoch(sec, tzconvert=True):
+    tstruct = time.gmtime(sec)
+    if tzconvert:
+        hr = tstruct.tm_hour - 5
+    else:
+        hr = tstruct.tm_hour
+    mn = tstruct.tm_min
+    sec = tstruct.tm_sec
+    out = "{0:02d}:{1:02d}:{2:02d}".format(hr, mn, sec)
+    return out
 
 def suggest_thread_amt(coordinator):
     '''Given the current settings input by the user, determine the
