@@ -73,6 +73,12 @@ class GUIBase(object):
                             }
 
         self.root.protocol("WM_DELETE_WINDOW", self._close_action)
+    
+    def _configure_style(self):
+        """Setup the Tkinter style."""
+        s = ttk.Style()
+        s.theme_use('clam')
+        
 
     def _close_action(self):
         """Calls the custom close actions then destroys the window."""
@@ -93,6 +99,18 @@ class GUIBase(object):
             root = self.root
         lbl = tk.Label(root, text=text, **label_opts,
                        **self.colors).grid(**grids)
+        return lbl
+    
+    def _add_changinglabel(self, text, varname, root=None, label_opts=None,
+                           **grids):
+        """Adds a label that uses a variable for its text."""
+        label_opts = label_opts or {}
+        root = root or self.root
+        var = tk.StringVar()
+        self.variables.update({varname: var})
+        var.set(text)
+        lbl = tk.Label(root, textvariable=var, **label_opts, **self.colors)
+        lbl.grid(**grids)
         return lbl
 
     def _add_entry(self, varname, root=None, width=None, entry_opts=None,
@@ -295,11 +313,12 @@ class EmailGUI(GUIBase):
 
     def spawn_gui_notebook(self):
         """Create the notebook pages."""
-        notebook = ttk.Notebook(self.root)
-        notebook.grid(row=10, column=0, columnspan=10, sticky='nsew')
+        self._notebook = ttk.Notebook(self.root)
+        self._notebook.grid(row=10, column=0, columnspan=10, sticky='nsew')
 
-        self.spawn_page_1(notebook)
-        self.spawn_page_2(notebook)
+        self.spawn_page_1(self._notebook)
+        self.spawn_page_2(self._notebook)
+        self.spawn_page_3(self._notebook)
 
     def spawn_page_1(self, notebook):
         """Create the elements of the first tab page."""
@@ -364,20 +383,6 @@ class EmailGUI(GUIBase):
         self._add_button('Reset', self.coordinator.callbacks['reset'],
                          root=bframe, row=2, column=0, sticky='n')
 
-        # progress bar
-        # no helper function here :(
-        self._add_label("Progress:", root=page, row=4, column=0, sticky='w')
-        self.variables.update({'progressbar': tk.IntVar()})
-        # pylint: disable=C0102
-        # "Blacklisted name 'bar'"
-        # In this case, 'bar' makes perfect sense and is not
-        # being used as in foo/bar/baz
-        self.bar = ttk.Progressbar(page, orient='horizontal', length=600,
-                                   mode='determinate',
-                                   variable=self.variables['progressbar'],
-                                   maximum=self.coordinator.settings['amount'])
-        self.bar.grid(row=4, column=1, columnspan=9, sticky='w')
-
     def spawn_page_2(self, notebook):
         """Spawn the page with connection options."""
 
@@ -435,6 +440,68 @@ class EmailGUI(GUIBase):
         auth = self._add_box("use_auth", "Use AUTH",
                              root=aframe, row=1, column=0, sticky='w')
         Tooltip(auth, text="Use AUTH if server allows it.")
+    
+    def spawn_page_3(self, notebook):
+        """Spawn the progress page"""
+        page = tk.Frame(notebook)
+        notebook.add(page, text="Progress", compound=tk.TOP)
+        
+        self.barframe = tk.Frame(page)
+        self.barframe.grid(row=0, column=0, columnspan=10, sticky='nsew')
+        self._add_label("Sub-progress bars will spawn once emails are sent!",
+                        root=self.barframe, row=0, column=0, 
+                        columnspan=10, sticky='nsew')
+        
+        # progress bar
+        # no helper function here :(
+        self.variables.update({'progressbar': tk.IntVar()})
+        # pylint: disable=C0102
+        # "Blacklisted name 'bar'"
+        # In this case, 'bar' makes perfect sense and is not
+        # being used as in foo/bar/baz
+        self.bar = ttk.Progressbar(page, orient='horizontal', length=600,
+                                   mode='determinate',
+                                   variable=self.variables['progressbar'],
+                                   maximum=self.coordinator.settings['amount'])
+        self.bar.grid(row=1, column=0, columnspan=10, sticky='w')
+        
+    
+    def add_n_progress_bars(self, n):
+        """Add a number of progress bars to the progress window.
+        Will autofill from coordinator settings with relevant information,
+        but must be given the number of bars to spawn.
+        
+        By the time this is called, coordinator.sender.worker_amounts
+        must be defined and accurate.
+        
+        Returns a list of ttk.Progressbar's."""
+        amounts = self.coordinator.sender.worker_amounts
+        bars = []
+        intvars = []
+        length = int(600 / n)
+        
+        for i in range(n):
+            var = tk.IntVar()
+            var.set(0)
+            intvars.append(var)
+            newbar = ttk.Progressbar(self.barframe, orient='horizontal',
+                                     length=length, mode='indeterminate',
+                                     variable=var,
+                                     maximum=amounts[i])
+            newbar.grid(row=0, column=i, sticky='w')
+            bars.append(newbar)
+        
+        return bars, intvars
+    
+    def reset_subprogress_bars(self):
+        """Resets the thread progress bars."""
+        page = self.barframe.master
+        self.barframe.destroy()
+        self.barframe = tk.Frame(page)
+        self.barframe.grid(row=0, column=0, columnspan=10, sticky='nsew')
+        self._add_label("Sub-progress bars will spawn once emails are sent!",
+                        root=self.barframe, row=0, column=0, 
+                        columnspan=10, sticky='nsew')
 
     def spawn_gui_menubar(self):
         """Spawns the GUI menu bar that runs along the top of the

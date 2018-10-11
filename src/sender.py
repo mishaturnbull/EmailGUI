@@ -31,8 +31,8 @@ class EmailSendHandler(threading.Thread):
         self.coordinator = coordinator
 
         self.worker_amounts = []
+        self.worker_bars = []
         self.workers = []
-        self.n_sent = 0
 
         self.is_done = self.do_abort = False
 
@@ -116,6 +116,8 @@ class EmailSendHandler(threading.Thread):
         runs the workers.
         """
         self.create_worker_configurations()
+        self.worker_bars, self.worker_vars = \
+            self.coordinator.gui.add_n_progress_bars(len(self.worker_amounts))
         self.spawn_worker_threads()
         self.start_workers()
 
@@ -141,7 +143,7 @@ class EmailSendHandler(threading.Thread):
         for worker in self.workers:
             worker.do_abort = True
 
-    def callback_sent(self):
+    def callback_sent(self, worker):
         """
         Takes action when each email is sent.  Mainly reports upwards to
         the coordinator for updating progress information.
@@ -194,23 +196,28 @@ class EmailSender(threading.Thread):
 
         self.worker_index = worker_index
         self.amount = self.handler.get_amount(self.worker_index)
+        self.bar = self.handler.worker_bars[self.worker_index]
+        self.var = self.handler.worker_vars[self.worker_index]
 
         self.is_done = False
-        self.n_sent = 0
 
         self.message = self.handler.coordinator.email.getmime()
 
-    def establish_connection(self, blocking=False):
+    def establish_connection(self):
         """Establish a connection to the server specified in
         the handler's settings dictionary.  Returns an smtplib.SMTP object."""
+        
+        prevar = self.var.get()
+        self.bar.config(mode='indeterminate')
+        self.bar.start(interval=200)
 
         try:
             server = smtplib.SMTP(self.handler.coordinator.settings['server'])
         except ConnectionRefusedError:
-            if blocking:
+            if self.handler.coordinator.settings['wait_on_retry']:
                 time.sleep(self.handler.coordinator.settings[
                     'wait_dur_on_retry'])
-                return self.establish_connection(blocking)
+                return self.establish_connection()
             else:
                 raise
         server.ehlo_or_helo_if_needed()
@@ -227,6 +234,11 @@ class EmailSender(threading.Thread):
 
         if self.handler.coordinator.settings['debug']:
             server.set_debuglevel(1)
+        
+
+        self.bar.stop()
+        self.bar.config(mode='determinate')
+        self.var.set(prevar)
 
         return server
 
@@ -244,9 +256,9 @@ class EmailSender(threading.Thread):
             self.handler.coordinator.settings['max_retries']
 
         try:
-
+            
             server = self.establish_connection()
-
+    
             for i in range(sending):
 
                 if self.handler.do_abort:
@@ -273,8 +285,9 @@ class EmailSender(threading.Thread):
 
                 if self.handler.coordinator.settings['debug']:
                     print("Sent successfully!")
-
-                self.handler.callback_sent()
+                
+                self.var.set(self.var.get() + 1)
+                self.handler.callback_sent(self)
 
                 if self.handler.coordinator.settings['debug']:
                     print("Completed send callback")

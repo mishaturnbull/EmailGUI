@@ -77,6 +77,7 @@ def handle_send(coordinator):
     coordinator.gui.root.grab_set()
     mboxres = messagebox.askyesno("Confirmation", msg)
     if mboxres:
+        coordinator.gui._notebook.select(".!notebook.!frame3")
         coordinator.send()
 
 
@@ -87,6 +88,7 @@ def handle_reset(coordinator):
     """Reset the program for another round of sending."""
     coordinator.reset()
     coordinator.gui.variables['progressbar'].set(0)
+    coordinator.gui.reset_subprogress_bars()
     coordinator.ready_to_send = True
 
 

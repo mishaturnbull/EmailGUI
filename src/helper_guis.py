@@ -142,18 +142,6 @@ class VerificationGUI(GUIBase):
 
         return entry
 
-    def _add_changinglabel(self, text, varname, root=None, label_opts=None,
-                           **grids):
-        """Adds a label that uses a variable for its text."""
-        label_opts = label_opts or {}
-        root = root or self.root
-        var = tk.StringVar()
-        self.variables.update({varname: var})
-        var.set(text)
-        lbl = tk.Label(root, textvariable=var, **label_opts, **self.colors)
-        lbl.grid(**grids)
-        return lbl
-
     def verify_syntax(self):
         """Verify that the email provided is compliant with RFC5322 grammar."""
         self.variables['output_5322'].set('Please wait...')
