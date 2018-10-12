@@ -39,8 +39,8 @@ class Coordinator(object):
                         'sending-time': None,
                         'remaining': None,
                         'sent': None,
-                        'etr': None,
                         'etc': None,
+                        'etr': None,
                         'no-active-connections': None,
                         }
 
@@ -67,7 +67,7 @@ class Coordinator(object):
                 def wrapped():
                     try:
                         return cbfunc(self)
-                    except (CATCH_EXC) as exc:
+                    except CATCH_EXC as exc:
                         self.last_exc = exc
                         handle_error(self)
                 return wrapped
@@ -81,6 +81,7 @@ class Coordinator(object):
         """Change the state of a submenu.
 
         State should be one of 'active' or 'inactive'."""
+        subui = None
         if guiname in self.active_guis:
             if state == 'inactive':
                 subui = self.active_guis.pop(guiname)
@@ -149,7 +150,7 @@ class Coordinator(object):
         try:
             self.gui.spawn_gui()
             self.gui.run()
-        except (CATCH_EXC) as exc:
+        except CATCH_EXC as exc:
             self.last_exc = exc
             handle_error(self)
 

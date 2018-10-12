@@ -65,21 +65,15 @@ class GUIBase(object):
             self.colors = self.buttons = {}
         else:
             self.colors = {"background":
-                           self.coordinator.settings['colors']['bg'],
+                               self.coordinator.settings['colors']['bg'],
                            }
             self.buttons = {"background":
-                            self.coordinator.settings['colors']['buttons'],
+                                self.coordinator.settings['colors']['buttons'],
                             "activebackground":
                                 self.coordinator.settings['colors']['bg'],
                             }
 
         self.root.protocol("WM_DELETE_WINDOW", self._close_action)
-    
-    def _configure_style(self):
-        """Setup the Tkinter style."""
-        s = ttk.Style()
-        s.theme_use('clam')
-        
 
     def _close_action(self):
         """Calls the custom close actions then destroys the window."""
@@ -101,7 +95,7 @@ class GUIBase(object):
         lbl = tk.Label(root, text=text, **label_opts,
                        **self.colors).grid(**grids)
         return lbl
-    
+
     def _add_changinglabel(self, text, varname, root=None, label_opts=None,
                            **grids):
         """Adds a label that uses a variable for its text."""
@@ -237,15 +231,17 @@ class GUIBase(object):
 
 
 class EmailGUI(GUIBase):
-    '''Make things easier to use, and prettier.'''
+    """Make things easier to use, and prettier."""
 
     def __init__(self, coordinator):
-        '''Start the class, and make stuff happen.'''
+        """Start the class, and make stuff happen."""
         super(EmailGUI, self).__init__(coordinator, name='main')
 
         self._pbar_lock = threading.Lock()
         # pylint: disable=C0102
         self.bar = None
+        self._notebook = None
+        self.barframe = None
 
     def callback_sent(self):
         """Action to take on a sent email."""
@@ -329,7 +325,7 @@ class EmailGUI(GUIBase):
 
         mtframe = tk.LabelFrame(page, text="Multithreading options",
                                 relief=tk.RIDGE, **self.colors)
-        mtframe.grid(row=0, column=1, sticky='w',)
+        mtframe.grid(row=0, column=1, sticky='w', )
 
         self.variables.update({"mt_mode": tk.StringVar()})
         self.variables['mt_mode'].set(self.coordinator.settings['mt_mode'])
@@ -441,18 +437,18 @@ class EmailGUI(GUIBase):
         auth = self._add_box("use_auth", "Use AUTH",
                              root=aframe, row=1, column=0, sticky='w')
         Tooltip(auth, text="Use AUTH if server allows it.")
-    
+
     def spawn_page_3(self, notebook):
         """Spawn the progress page"""
         page = tk.Frame(notebook)
         notebook.add(page, text="Progress", compound=tk.TOP)
-        
+
         self.barframe = tk.Frame(page)
         self.barframe.grid(row=0, column=0, columnspan=10, sticky='nsew')
         self._add_label("Sub-progress bars will spawn once emails are sent!",
-                        root=self.barframe, row=0, column=0, 
+                        root=self.barframe, row=0, column=0,
                         columnspan=10, sticky='nsew')
-        
+
         # progress bar
         # no helper function here :(
         self.variables.update({'progressbar': tk.IntVar()})
@@ -465,7 +461,7 @@ class EmailGUI(GUIBase):
                                    variable=self.variables['progressbar'],
                                    maximum=self.coordinator.settings['amount'])
         self.bar.grid(row=1, column=0, columnspan=10, sticky='w')
-        
+
         self._add_label("#Remaining: ", root=page, row=2, column=0, sticky='w')
         self._add_changinglabel("0", 'remaining', root=page, row=2,
                                 column=1, sticky='w')
@@ -479,7 +475,7 @@ class EmailGUI(GUIBase):
         self._add_label("E.T.C:", root=page, row=2, column=6, sticky='w')
         self._add_changinglabel("00:00", 'etc', root=page, row=2,
                                 column=7, sticky='w')
-        ################### ROW SPLIT
+        # ROW SPLIT
         self._add_label("Mail/sec: ", root=page, row=3, column=0, sticky='w')
         self._add_changinglabel('0', 'sending-rate', root=page, row=3,
                                 column=1, sticky='w')
@@ -491,41 +487,41 @@ class EmailGUI(GUIBase):
                         sticky='w')
         self._add_changinglabel("0", 'no-active-connections', root=page,
                                 row=3, column=5, sticky='w')
-    
+
     def pull_metrics_from_coordinator(self):
         """Grab the metrics from the coordinator, convert to UX-friendly
         format, and push to display."""
-        
+
         def rstr(num):
             return str(round(num, 2))
-        
+
         direct_translations = ['remaining', 'sent', 'no-active-connections']
         for t in direct_translations:
             self.variables[t].set(str(self.coordinator.metrics[t]))
         self.variables['etr'].set(
-                time_from_epoch(self.coordinator.metrics['etr'],
-                                tzconvert=False))
+            time_from_epoch(self.coordinator.metrics['etr'],
+                            tzconvert=False))
         self.variables['etc'].set(
-                time_from_epoch(self.coordinator.metrics['etc']))
+            time_from_epoch(self.coordinator.metrics['etc']))
         self.variables['sending-rate'].set(
-                rstr(self.coordinator.metrics['sending-rate']) + " / sec")
+            rstr(self.coordinator.metrics['sending-rate']) + " / sec")
         self.variables['sending-time'].set(
-                rstr(self.coordinator.metrics['sending-time']) + " sec")
-    
+            rstr(self.coordinator.metrics['sending-time']) + " sec")
+
     def add_n_progress_bars(self, n):
         """Add a number of progress bars to the progress window.
         Will autofill from coordinator settings with relevant information,
         but must be given the number of bars to spawn.
-        
+
         By the time this is called, coordinator.sender.worker_amounts
         must be defined and accurate.
-        
+
         Returns a list of ttk.Progressbar's."""
         amounts = self.coordinator.sender.worker_amounts
         bars = []
         intvars = []
         length = int(600 / n)
-        
+
         for i in range(n):
             var = tk.IntVar()
             var.set(0)
@@ -536,9 +532,9 @@ class EmailGUI(GUIBase):
                                      maximum=amounts[i])
             newbar.grid(row=0, column=i, sticky='w')
             bars.append(newbar)
-        
+
         return bars, intvars
-    
+
     def reset_subprogress_bars(self):
         """Resets the thread progress bars."""
         page = self.barframe.master
@@ -546,7 +542,7 @@ class EmailGUI(GUIBase):
         self.barframe = tk.Frame(page)
         self.barframe.grid(row=0, column=0, columnspan=10, sticky='nsew')
         self._add_label("Sub-progress bars will spawn once emails are sent!",
-                        root=self.barframe, row=0, column=0, 
+                        root=self.barframe, row=0, column=0,
                         columnspan=10, sticky='nsew')
 
     def spawn_gui_menubar(self):
