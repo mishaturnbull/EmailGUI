@@ -320,7 +320,9 @@ class EmailSender(threading.Thread):
                 d_some = (con_mode == 'con_some') and (i % con_num == 0) \
                     and (i != 0)
 
-                if d_per or d_some:
+                if d_per or d_some:        
+                    self.handler.coordinator.metrics[
+                            'no-active-connections'] -= 1
                     server.quit()
                     server = self.establish_connection()
 
