@@ -131,7 +131,7 @@ class Coordinator(object):
         self.sender = EmailSendHandler(self)
         self.email = Email(self, self.headers)
         self.retrieve_data_from_uis()
-        
+
         for key in self.metrics:
             self.metrics[key] = None
 

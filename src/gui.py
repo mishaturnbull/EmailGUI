@@ -65,10 +65,10 @@ class GUIBase(object):
             self.colors = self.buttons = {}
         else:
             self.colors = {"background":
-                               self.coordinator.settings['colors']['bg'],
+                           self.coordinator.settings['colors']['bg'],
                            }
             self.buttons = {"background":
-                                self.coordinator.settings['colors']['buttons'],
+                            self.coordinator.settings['colors']['buttons'],
                             "activebackground":
                                 self.coordinator.settings['colors']['bg'],
                             }
