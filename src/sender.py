@@ -53,7 +53,8 @@ class EmailSendHandler(threading.Thread):
         elif self.coordinator.settings['mt_mode'] == 'unlimited':
             num_threads = self.coordinator.settings['amount']
         else:
-            assert False, "got num_threads = " + repr(num_threads)
+            assert False, "got mt_mode = " + \
+                          self.coordinator.settings['mt_mode']
 
         emails_per_thread = self.coordinator.settings['amount'] // num_threads
 

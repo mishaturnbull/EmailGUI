@@ -120,7 +120,7 @@ class Coordinator(object):
     def callback_sent(self):
         """Action to take when an email has been sent."""
         if self.settings['debug']:
-            print("coordinator recieved notification of email sent")
+            print("coordinator received notification of email sent")
         self.gui.callback_sent()
         if self.settings['debug']:
             print("coordinator notification actions completed")
@@ -131,9 +131,8 @@ class Coordinator(object):
         self.sender = EmailSendHandler(self)
         self.email = Email(self, self.headers)
         self.retrieve_data_from_uis()
-
-        for key in self.metrics:
-            self.metrics[key] = None
+        self.sender.init_metrics()
+        self.gui.pull_metrics_from_coordinator()
 
     def main(self):
         """Do stuff!"""

@@ -363,7 +363,7 @@ class EmailGUI(GUIBase):
 
         rtlbox = self._add_box("realtime", "Realtime logging", root=oframe,
                                row=1, column=0, sticky='w')
-        Tooltip(rtlbox, text="Not recomended!  Makes program very slow!")
+        Tooltip(rtlbox, text="Not recommended!  Makes program very slow!")
 
         self._add_button("Dump logs",
                          self.coordinator.callbacks['flushlogs'],
@@ -371,8 +371,8 @@ class EmailGUI(GUIBase):
 
         metbox = self._add_box("metrics", "Enable Performance Metrics",
                                root=oframe, row=0, column=1, sticky='w')
-        Tooltip(metbox, text="Makes program slower, but without enables you to"
-                " see information such as est. time remaining.")
+        Tooltip(metbox, text="Makes program slower, but enables"
+                " information such as est. time remaining.")
 
         bframe = tk.LabelFrame(page, text="Controls",
                                relief=tk.RIDGE, **self.colors)
