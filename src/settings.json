@@ -30,6 +30,7 @@
         "title": "SpamBotFromHell",
         "debug": false,
         "realtime": false,
+        "metrics": true,
         "delay": 0,
         "max_retries": 5,
         "amount": 10,

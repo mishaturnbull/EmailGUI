@@ -369,6 +369,11 @@ class EmailGUI(GUIBase):
                          self.coordinator.callbacks['flushlogs'],
                          root=oframe, row=2, column=0, sticky='w')
 
+        metbox = self._add_box("metrics", "Enable Performance Metrics",
+                               root=oframe, row=0, column=1, sticky='w')
+        Tooltip(metbox, text="Makes program slower, but without enables you to"
+                " see information such as est. time remaining.")
+
         bframe = tk.LabelFrame(page, text="Controls",
                                relief=tk.RIDGE, **self.colors)
         bframe.grid(row=0, column=0, sticky='nw')
@@ -492,6 +497,8 @@ class EmailGUI(GUIBase):
         """Grab the metrics from the coordinator, convert to UX-friendly
         format, and push to display."""
 
+        assert self.coordinator.settings['metrics'], "Should never reach here!"
+
         def rstr(num):
             return str(round(num, 2))
 
@@ -517,6 +524,8 @@ class EmailGUI(GUIBase):
         must be defined and accurate.
 
         Returns a list of ttk.Progressbar's."""
+        assert self.coordinator.settings['metrics'], "Should never reach here!"
+
         amounts = self.coordinator.sender.worker_amounts
         bars = []
         intvars = []
