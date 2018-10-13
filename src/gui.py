@@ -434,6 +434,11 @@ class EmailGUI(GUIBase):
         self._add_entry("wait_dur_on_retry",
                         root=cframe, width=4, row=1, column=3,
                         sticky='w')
+        self._add_label("Establishment timeout: ", root=cframe,
+                        row=2, column=2, sticky='w')
+        self._add_entry("connection_timeout",
+                        root=cframe, width=4, row=2, column=3,
+                        sticky='w')
 
         tls = self._add_box("use_starttls", "Use STARTTLS",
                             root=aframe, row=0, column=0, sticky='w')

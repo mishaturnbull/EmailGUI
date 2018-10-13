@@ -274,7 +274,9 @@ class EmailSender(threading.Thread):
             self.bar.start(interval=200)
 
         try:
-            server = smtplib.SMTP(self.handler.coordinator.settings['server'])
+            server = smtplib.SMTP(self.handler.coordinator.settings['server'],
+                                  timeout=self.handler.coordinator.settings[
+                                      'connection_timeout'])
         except ConnectionRefusedError:
             if self.handler.coordinator.settings['wait_on_retry']:
                 time.sleep(self.handler.coordinator.settings[

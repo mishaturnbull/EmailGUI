@@ -40,6 +40,7 @@
         "con_num": 30,
         "wait_on_retry": true,
         "wait_dur_on_retry": 10,
+        "connection_timeout": 10,
         "confirmation_msg": [
             "Are you certain you wish to proceed?",
             "This cannot reliably be undone and can have unfortunate results!"
