@@ -195,7 +195,8 @@ class EmailSendHandler(threading.Thread):
                 avgs.append(worker._sending_time)
             avg = sum(avgs) / len(avgs)
 
-            # now compute the sending rate from the time.  inversely proportional
+            # now compute the sending rate from the time.
+            # inversely proportional
             rate = 1 / avg
 
             self.coordinator.metrics['sending-time'] = avg
@@ -208,8 +209,8 @@ class EmailSendHandler(threading.Thread):
 
             # est. time completion
             # computed by adding time.time() to etr
-            self.coordinator.metrics['etc'] = self.coordinator.metrics['etr'] + \
-                time.time()
+            self.coordinator.metrics['etc'] = \
+                self.coordinator.metrics['etr'] + time.time()
 
             self.coordinator.gui.pull_metrics_from_coordinator()
 
@@ -365,8 +366,9 @@ class EmailSender(threading.Thread):
                     delta = endtime - starttime
 
                     self._n_sent += 1
-                    self._sending_time = self._sending_time + (delta -
-                                                               self._sending_time) \
+                    self._sending_time = self._sending_time + \
+                                         (delta -
+                                          self._sending_time) \
                         / self._n_sent
                 self.handler.callback_sent(self)
                 if self.handler.coordinator.settings['debug']:
