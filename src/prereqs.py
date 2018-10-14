@@ -80,7 +80,7 @@ parser.add_argument('--server', nargs=1, dest='SERVER',
                     help='smtp server to send emails from')
 parser.add_argument('--max-retries', nargs=1, dest='MAX_RETRIES',
                     type=int, required=False,
-                    default=CONFIG['settings']['max_retries'],
+                    default=CONFIG['settings']['retry_dropped'],
                     help='the maximum number of times the program will'
                          ' attempt to reconnect to the server if ocnnection'
                          ' is lost')

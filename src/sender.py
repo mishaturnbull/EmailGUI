@@ -265,7 +265,7 @@ class EmailSender(threading.Thread):
 
         self.message = self.handler.coordinator.email.getmime()
 
-    def establish_connection(self):
+    def establish_connection(self, retries_left=None):
         """Establish a connection to the server specified in
         the handler's settings dictionary.  Returns an smtplib.SMTP object."""
 
@@ -274,17 +274,20 @@ class EmailSender(threading.Thread):
             self.bar.config(mode='indeterminate')
             self.bar.start(interval=200)
 
+        retries = retries_left or self.handler.coordinator.settings[
+            'retry_establish']
+
         try:
             server = smtplib.SMTP(self.handler.coordinator.settings['server'],
                                   timeout=self.handler.coordinator.settings[
                                       'connection_timeout'])
         except ConnectionRefusedError:
-            if self.handler.coordinator.settings['wait_on_retry']:
-                time.sleep(self.handler.coordinator.settings[
-                    'wait_dur_on_retry'])
-                return self.establish_connection()
-            else:
-                raise
+            if retries != 0:
+                if self.handler.coordinator.settings['wait_on_retry']:
+                    time.sleep(self.handler.coordinator.settings[
+                        'wait_dur_on_retry'])
+                return self.establish_connection(retries - 1)
+
         server.ehlo_or_helo_if_needed()
 
         if server.has_extn("starttls") and \
@@ -320,7 +323,7 @@ class EmailSender(threading.Thread):
         # preconfigure localized options for a reconnection case
         sending = remaining or self.amount
         retries_left = retries_left or \
-            self.handler.coordinator.settings['max_retries']
+            self.handler.coordinator.settings['retry_dropped']
 
         try:
 
@@ -367,8 +370,7 @@ class EmailSender(threading.Thread):
 
                     self._n_sent += 1
                     self._sending_time = self._sending_time + \
-                                         (delta -
-                                          self._sending_time) \
+                        (delta - self._sending_time) \
                         / self._n_sent
                 self.handler.callback_sent(self)
                 if self.handler.coordinator.settings['debug']:

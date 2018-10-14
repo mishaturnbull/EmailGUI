@@ -424,20 +424,25 @@ class EmailGUI(GUIBase):
         self._add_entry("con_num", root=cframe, width=4,
                         row=2, column=1, sticky='w')
 
-        self._add_label("Max. retries:", root=cframe, row=0,
+        self._add_label("Retry dropped:", root=cframe, row=0,
                         column=2, sticky='w')
-        self._add_entry('max_retries', root=cframe,
+        self._add_entry('retry_dropped', root=cframe,
                         width=4, row=0, column=3, sticky='w')
 
+        self._add_label("Retry establish:", root=cframe, row=1,
+                        column=2, sticky='w')
+        self._add_entry("retry_establish", root=cframe,
+                        width=4, row=1, column=3, sticky='w')
+
         self._add_box("wait_on_retry", "Wait for connection",
-                      root=cframe, row=1, column=2, sticky='w')
+                      root=cframe, row=2, column=2, sticky='w')
         self._add_entry("wait_dur_on_retry",
-                        root=cframe, width=4, row=1, column=3,
+                        root=cframe, width=4, row=2, column=3,
                         sticky='w')
         self._add_label("Establishment timeout: ", root=cframe,
-                        row=2, column=2, sticky='w')
+                        row=0, column=4, sticky='w')
         self._add_entry("connection_timeout",
-                        root=cframe, width=4, row=2, column=3,
+                        root=cframe, width=4, row=0, column=5,
                         sticky='w')
 
         tls = self._add_box("use_starttls", "Use STARTTLS",
