@@ -28,31 +28,51 @@ class HeaderGUI(GUIBase):
         super(HeaderGUI, self).__init__(coordinator, coordinator.gui.root,
                                         name='headers')
 
+        self.variables = []
+
         self.entry_width = self.entry_width // 3
 
         self._max_rows = 10
         self._row = 1
         self._column = 0
 
-    def _add_entry(self, varname, root=None, width=None, entry_opts=None,
+    def _add_entry(self, idx, root=None, width=None, entry_opts=None,
                    **grids):
         """Wrapper for GUIBase's _add_entry method.  Autofills from the
         header sub-dictionary in contents."""
-        super(HeaderGUI, self)._add_entry(varname, width, entry_opts, **grids)
-        self.variables[varname].set(
-            self.coordinator.headers.headers[varname])
+        entry_opts = entry_opts or {}
+        width = width or self.entry_width
+        entry_opts.update(width=width)
+        root = root or self.root
 
-    def _add_box(self, name, label, root=None, box_opts=None, **grids):
+        self.variables[idx]['value'] = tk.StringVar()
+        if self.variables[idx]['name'] in self.coordinator.headers.header_list:
+            # vagrant syntax abuse, but necessary to keep this from being
+            # 9000 characters long
+            name = self.variables[idx]['name']
+            hlidx = self.coordinator.headers.header_list.index(name)
+            hlinfo = self.coordinator.headers.headers[hlidx]
+            value = hlinfo['value']
+            self.variables[idx]['value'].set(value)
+
+        entry = tk.Entry(root, textvariable=self.variables[idx]['value'],
+                         **entry_opts)
+        entry.grid(**grids)
+
+        return entry
+
+    def _add_box(self, idx, label, root=None, box_opts=None, **grids):
         """Wrapper for GUIBase's _add_box method.  Auto-enables if the
         corresponding header is enabled."""
         box_opts = box_opts or {}
+        root = root or self.root
 
-        self.variables.update({'enabled_' + name: tk.IntVar()})
-        if self.variables[name].get() != '':
-            self.variables['enabled_' + name].set(1)
+        self.variables[idx]['enabled'] = tk.IntVar()
+        if self.variables[idx]['value'].get() is not '':
+            self.variables[idx]['enabled'].set(1)
 
-        box = tk.Checkbutton(self.root, text=label,
-                             variable=self.variables['enabled_' + name],
+        box = tk.Checkbutton(root, text=label,
+                             variable=self.variables[idx]['enabled'],
                              **box_opts, **self.colors)
         box.grid(**grids)
 
@@ -66,15 +86,19 @@ class HeaderGUI(GUIBase):
         """Output the values to the header class."""
         self.coordinator.headers.pull_from_header_gui(self)
 
-    def _spawn_field(self, header_name):
+    def _spawn_field(self, header_info):
         """Add a header field in the next spot with default name & value."""
         if self._row >= self._max_rows:
             self._row = 1
             self._column += 2
 
-        self._add_entry(header_name, row=self._row, column=(self._column + 1),
+        self.variables.append({"name": header_info['name'],
+                               "value": None,
+                               "enabled": None})
+
+        self._add_entry(-1, row=self._row, column=(self._column + 1),
                         sticky='w')
-        self._add_box(header_name, header_name + ":",
+        self._add_box(-1, header_info['name'] + ":",
                       row=self._row, column=self._column, sticky='w')
 
         self._row += 1
@@ -88,7 +112,7 @@ class HeaderGUI(GUIBase):
         if header is None:
             return  # user hit cancel
         self.coordinator.headers.add_header(header, "")
-        self._spawn_field(header)
+        self._spawn_field(self.coordinator.headers.headers[-1])
 
     def spawn_gui_basics(self):
         """Spawn the base parts of the GUI."""

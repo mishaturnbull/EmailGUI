@@ -104,6 +104,7 @@ CALLBACKS.append(handle_reset)
 
 def handle_headers(coordinator):
     """Spawn the header GUI."""
+    coordinator.retrieve_data_from_uis()
     hgui = HeaderGUI(coordinator)
     hgui.spawn_gui_basics()
 

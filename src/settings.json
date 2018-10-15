@@ -60,7 +60,7 @@
         "251": "User not local; will forward to <forward-path>",
         "252": "Cannot VRFY user, but will accept message and attempt delivery",
         "354": "Start mail input; end with <CRLF>.<CRLF>",
-        "421": "<doman> Service not available, closing transmission channel",
+        "421": "<domain> Service not available, closing transmission channel",
         "450": "Requested mail action not taken: mailbox unavailable",
         "451": "Requested action aborted: local error in processing",
         "452": "Requested action not taken: insufficient system storage",
