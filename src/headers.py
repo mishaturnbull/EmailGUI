@@ -118,10 +118,8 @@ class Headers(object):
         """Create the basic tags from the Coordinator settings fields."""
         self.add_if_empty('date', formatdate(time.time()))
         self.add_if_empty("message-id", str(uuid.uuid4()))
-        fields = {'sender': 'account', 'from': 'from'}
-        for field in fields:
-            self.add_if_empty(field,
-                              self.coordinator.contents[fields[field]])
+        self.add_if_empty("sender", self.coordinator.contents['account'])
+        self.add_if_empty("from", self.coordinator.contents['headers']['from'])
 
     def pull_from_header_gui(self, header_gui):
         """Get all the headers from the GUI."""

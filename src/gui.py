@@ -589,5 +589,7 @@ class EmailGUI(GUIBase):
                               command=self.coordinator.callbacks['quickhelp'])
         menu_help.add_command(label="In-depth documentation (online)",
                               command=self.coordinator.callbacks['deephelp'])
+        menu_help.add_command(label="SMTP Response Codes",
+                              command=self.coordinator.callbacks['codelookup'])
 
         self.root.config(menu=menu)

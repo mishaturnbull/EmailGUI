@@ -30,6 +30,7 @@ class Coordinator(object):
         if CONFIG['settings']['debug']:
             print("coordinator.__init__: starting instantiation")
 
+        self.overall_config = CONFIG
         self.settings = copy.deepcopy(CONFIG['settings'])
         self.contents = copy.deepcopy(CONFIG['contents'])
         self.callbacks = {}

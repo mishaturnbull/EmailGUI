@@ -9,7 +9,8 @@ import traceback
 
 from helpers import suggest_thread_amt
 from prereqs import GUI_DOC
-from helper_guis import HeaderGUI, VerificationGUI, EmailEditorGUI
+from helper_guis import HeaderGUI, VerificationGUI, EmailEditorGUI, \
+    SMTPResponseCodeLookupGUI
 from gui_addons import error_more_details
 from emailbuilder import PayloadGenerator
 
@@ -177,6 +178,15 @@ def handle_deephelp(coordinator):
 
 
 CALLBACKS.append(handle_deephelp)
+
+
+def handle_codelookup(coordinator):
+    """Open the SMTP Response code lookup window."""
+    cgui = SMTPResponseCodeLookupGUI(coordinator)
+    cgui.spawn_gui()
+
+
+CALLBACKS.append(handle_codelookup)
 
 
 def handle_flushlogs(coordinator):

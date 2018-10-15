@@ -13,10 +13,12 @@ if sys.version_info.major == 3:
     import tkinter as tk
     from tkinter import simpledialog
     from tkinter import scrolledtext
+    import tkinter.ttk as ttk
 elif sys.version_info.major == 2:
     import Tkinter as tk
     import tkSimpleDialog as simpledialog
     import tkScrolledText as scrolledtext
+    import ttk
 
 
 class HeaderGUI(GUIBase):
@@ -288,3 +290,43 @@ class EmailEditorGUI(GUIBase):
                          self.coordinator.callbacks['addRandomPayload'],
                          root=leftframe,
                          row=0, column=0, sticky='ew')
+
+
+class SMTPResponseCodeLookupGUI(GUIBase):
+    """This class is responsible for using looking up SMTP response codes
+    in a user-friendly manner."""
+
+    def __init__(self, coordinator):
+        """Instantiate the resp. code lookup GUI."""
+        super(SMTPResponseCodeLookupGUI, self).__init__(coordinator,
+                                                        coordinator.gui.root,
+                                                        "codelookup")
+
+        self.codes = self.coordinator.overall_config['SMTP_resp_codes']
+
+    def do_lookup(self):
+        """Handle the action for looking up a response code."""
+        # TODO: implement this!
+        code = self.entryvar.get()
+        try:
+            message = self.codes[code]
+        except KeyError:
+            # couldn't find it
+            message = "I don't know that response code!"
+        self.variables['output'].set(message)
+
+    def spawn_gui(self):
+        """Create the window."""
+
+        self.entryvar = tk.StringVar()
+        self.entry = ttk.Combobox(self.root, textvariable=self.entryvar,
+                                  height=len(self.codes), width=8)
+        self.entry.grid(row=0, column=0, sticky='w')
+
+        self.entry['values'] = list(self.codes.keys())
+
+        self._add_button("Lookup", callback=self.do_lookup, row=0, column=1,
+                         sticky='w')
+
+        self._add_changinglabel(text=" "*60, varname="output", row=0,
+                                column=2, sticky='w')
