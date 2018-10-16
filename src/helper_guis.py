@@ -183,7 +183,14 @@ class VerificationGUI(GUIBase):
         serv = self.coordinator.gui.variables['server'].get()
         self.variables['output_vrfy'].set('Please wait...')
         resp = verify_to(self.coordinator.gui.variables['to'].get(), serv)
-        resp = resp[0]
+        self.root.after(10, self.fin_verify_using_vrfy, resp)
+
+    def fin_verify_using_vrfy(self, resp):
+        """Complete the update actions."""
+        try:
+            resp = resp.resp[0]
+        except AttributeError:
+            self.root.after(30, self.fin_verify_using_vrfy, resp)
         if resp == 250:
             msg = str(resp) + " Email appears valid."
         elif resp == 251:
@@ -204,7 +211,14 @@ class VerificationGUI(GUIBase):
                                self.coordinator.gui.variables['account'].get(),
                                self.coordinator.gui.variables[
                                    'password'].get())
-        resp = resp[0]
+        self.root.after(25, self.fin_verify_using_mail, resp)
+
+    def fin_verify_using_mail(self, resp):
+        """Complete the update actions."""
+        try:
+            resp = resp.resp[0]
+        except AttributeError:
+            self.root.after(75, self.fin_verify_using_mail, resp)
         if resp == 550:
             msg = str(resp) + " Email appears invalid."
         elif resp == 250:

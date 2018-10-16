@@ -8,6 +8,7 @@ import ipaddress
 import math
 import re
 import time
+import threading
 
 from prereqs import VALIDATION_RE
 
@@ -72,31 +73,53 @@ def suggest_thread_amt(coordinator):
     return recommend
 
 
+class _MutableNamespace(dict):
+    """Use it as a pass-between for procedure-threads."""
+
+    def __getattribute__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            msg = "'%s' object has no attribute '%s'"
+            raise AttributeError(msg % (type(self).__name__, name))
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
 def verify_to(address, serv):
     """Given an address and a server to use, send an SMTP VRFY command
     and return the result."""
-    # import smtplib
-    server = smtplib.SMTP(serv)
-    resp = server.verify(address)
-    server.quit()
-    return resp
+    data = _MutableNamespace()
+
+    def internal_vrfy():
+        server = smtplib.SMTP(serv)
+        resp = server.verify(address)
+        server.quit()
+        data.resp = resp
+    threading.Thread(target=internal_vrfy).start()
+    return data
 
 
 def verify_to_email(address, serv, frm, pwd):
     """Given an address and a server to use, attempt to verify the address
     by sending mail to it."""
-    # import smtplib
-    server = smtplib.SMTP(serv)
-    server.ehlo_or_helo_if_needed()
-    if server.has_extn("STARTTLS"):
-        server.starttls()
-        server.ehlo()
-    if server.has_extn("AUTH"):
-        server.login(frm, pwd)
-    server.mail(frm)
-    resp = server.rcpt(address)
-    server.quit()
-    return resp
+    data = _MutableNamespace()
+
+    def internal_mail():
+        server = smtplib.SMTP(serv)
+        server.ehlo_or_helo_if_needed()
+        if server.has_extn("STARTTLS"):
+            server.starttls()
+            server.ehlo()
+        if server.has_extn("AUTH"):
+            server.login(frm, pwd)
+        server.mail(frm)
+        resp = server.rcpt(address)
+        server.quit()
+        data.resp = resp
+    threading.Thread(target=internal_mail).start()
+    return data
 
 
 def check_rfc_5322(address):

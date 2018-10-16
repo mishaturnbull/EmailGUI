@@ -7,7 +7,6 @@ module.
 
 from __future__ import (division, print_function, generators, absolute_import)
 
-import argparse
 import sys
 import json
 import smtplib
