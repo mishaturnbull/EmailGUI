@@ -76,5 +76,16 @@
         "552": "Request mail action aborted: exceeded storage allocation",
         "553": "Requested action not taken: mailbox name not allowed",
         "554": "Transaction failed"
-    }
+    },
+    "autofill-servers": [
+        "127.0.0.1:25",
+        "smtp.gmail.com:587",
+        "smtp.gmail.com:465",
+        "aspmx.l.gmail.com:25",
+        "smtp.mail.yahoo.com:587",
+        "smtp.mail.yahoo.com:465",
+        "smtp.live.com:465",
+        "smtp.live.com:25",
+        "smtp.aol.com:587"
+    ]
 }

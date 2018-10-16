@@ -318,6 +318,7 @@ class SMTPResponseCodeLookupGUI(GUIBase):
     def spawn_gui(self):
         """Create the window."""
 
+        # TODO: redo this using self._add_combobox now that that exists
         self.entryvar = tk.StringVar()
         self.entry = ttk.Combobox(self.root, textvariable=self.entryvar,
                                   height=len(self.codes), width=8)

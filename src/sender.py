@@ -297,8 +297,8 @@ class EmailSender(threading.Thread):
 
         if server.has_extn("auth") and \
            self.handler.coordinator.settings['use_auth']:
-            server.login(self.handler.coordinator.settings['from'],
-                         self.handler.coordinator.settings['password'])
+            server.login(self.handler.coordinator.contents['account'],
+                         self.handler.coordinator.contents['password'])
 
         if self.handler.coordinator.settings['debug']:
             server.set_debuglevel(1)

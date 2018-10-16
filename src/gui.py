@@ -133,6 +133,27 @@ class GUIBase(object):
 
         return entry
 
+    def _add_combobox(self, varname, root=None, values=None, width=None,
+                      combobox_opts=None, **grids):
+        """Add a ttk.Combobox to the root, and grid it."""
+        combobox_opts = combobox_opts or {}
+        width = width or self.entry_width
+        combobox_opts.update(width=width)
+        root = root or self.root
+        var = tk.StringVar()
+        self.variables.update({varname: var})
+        cbox = ttk.Combobox(root, textvariable=var,
+                            height=len(values), **combobox_opts)
+        cbox['values'] = values
+        cbox.grid(**grids)
+
+        if varname in self.coordinator.contents:
+            var.set(self.coordinator.contents[varname])
+        if varname in self.coordinator.settings:
+            var.set(self.coordinator.settings[varname])
+
+        return cbox
+
     def _add_button(self, label, callback, root=None, btn_opts=None, **grids):
         """Adds a tk.Button element to the root window, configures it,
         and grids it to the root."""
@@ -298,8 +319,11 @@ class EmailGUI(GUIBase):
 
         # server
         self._add_label("Server:", row=6, column=0, sticky='w')
-        self._add_entry('server', row=6, column=1, columnspan=9,
-                        sticky='ew')
+        self._add_combobox(varname='server',
+                           values=self.coordinator.overall_config[
+                               'autofill-servers'],
+                           row=6, column=1, columnspan=8, sticky='w')
+
 
         # attachments
         self._add_label("Attachments:", row=7, column=0, sticky='w')
@@ -502,6 +526,11 @@ class EmailGUI(GUIBase):
                         sticky='w')
         self._add_changinglabel("0", 'no-active-connections', root=page,
                                 row=3, column=5, sticky='w')
+
+    def dump_values_to_coordinator(self):
+        """Do everything we'd normally do, except also add the password."""
+        super(EmailGUI, self).dump_values_to_coordinator()
+        self.coordinator.contents['password'] = self.variables['password'].get()
 
     def pull_metrics_from_coordinator(self):
         """Grab the metrics from the coordinator, convert to UX-friendly
