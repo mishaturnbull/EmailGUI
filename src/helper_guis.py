@@ -267,8 +267,10 @@ class EmailEditorGUI(GUIBase):
         # 'end-1c' comes from a SO answer
         # credit to Bryan Oakley
         # https://stackoverflow.com/a/14824164/4612410
-        self.coordinator.contents['text'] = self.editor.get("1.0", 'end-1c')
-        self.coordinator.active_guis['main'].pull_values_from_coordinator()
+        self.coordinator.active_guis['main'].variables['text'].set(
+            self.editor.get("1.0", "end-1c")
+        )
+        self.coordinator.active_guis['main'].dump_values_to_coordinator()
 
     def spawn_gui_elements(self):
         """Create the GUI elements necessary."""
