@@ -7,13 +7,10 @@ module.
 
 from __future__ import (division, print_function, generators, absolute_import)
 
-import argparse
 import sys
 import json
 import smtplib
 import os
-
-from helpers import suggest_thread_amt
 
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
@@ -22,12 +19,15 @@ if sys.version_info.major == 3:
     BEST_RANGE = range  # pylint: disable=C0103
     BEST_INPUT = input  # pylint: disable=C0103
     FILE_NOT_FOUND = FileNotFoundError
-if sys.version_info.major == 2:
+elif sys.version_info.major == 2:
     # this will never throw a NameError in py3 because the condition above
     # is false, meaning this never executes
     BEST_RANGE = xrange  # pylint: disable=E0602
     BEST_INPUT = raw_input  # pylint: disable=E0602
     FILE_NOT_FOUND = IOError
+else:
+    raise RuntimeError("This code is not designed to be run outside of Python"
+                       " 2 or 3!  Contact developer to fix this issue.")
 
 try:
     with open("settings.json", 'r') as config:
@@ -36,81 +36,51 @@ except FILE_NOT_FOUND:
     sys.stderr.write("Couldn't find config file [settings.json]!")
     sys.exit(0)
 
+
 # We need to join the message on newlines because it's stored in JSON
 # as an array of strings
-CONFIG['text'] = '\n'.join(CONFIG['text'])
-
-# the SMTP response codes are indexed as strings due to JSON storage
-# requirements, so change those to integers
-for s in CONFIG['SMTP_resp_codes']:
-    CONFIG['SMTP_resp_codes'].update({int(s):
-                                      CONFIG['SMTP_resp_codes'].pop(s)})
+CONFIG['contents']['text'] = '\n'.join(CONFIG['contents']['text'])
 
 MAX_RESP_LEN = max([len(CONFIG['SMTP_resp_codes'][i]) for i in
                     CONFIG['SMTP_resp_codes']])
 
-parser = argparse.ArgumentParser(description="Send emails like a pro.",
-                                 prefix_chars='/-',
-                                 fromfile_prefix_chars='')
-parser.add_argument('-p', '--nogui', dest='NOGUI', action='store_const',
-                    const=True, default=False,
-                    help='specify to run without a GUI')
-parser.add_argument('-d', '--debug', dest='DEBUG', action='store_const',
-                    const=True, default=False,
-                    help='output program debugging info')
-parser.add_argument('-c', '--commandline', dest='COMMANDLINE',
-                    action='store_const', const=True, default=False,
-                    help='pass parameters as arguments to command')
-parser.add_argument('--amount', nargs=1, dest='AMOUNT',
-                    type=int, required=False, default=CONFIG['amount'],
-                    help='amount of emails to send')
-parser.add_argument('--rcpt', nargs=1, dest='RCPT',
-                    type=str, required=False, default=CONFIG['to'],
-                    help='unlucky recipient of emails')
-parser.add_argument('--from', nargs=1, dest='FROM',
-                    type=str, required=False, default=CONFIG['from'],
-                    help='your (sender\'s) email address')
-parser.add_argument('--pwd', nargs=1, dest='PASSWORD',
-                    type=str, required=False,
-                    help='your (sender\'s) email password')
-parser.add_argument('--server', nargs=1, dest='SERVER',
-                    type=str, required=False, default=CONFIG['server'],
-                    help='smtp server to send emails from')
-parser.add_argument('--max-retries', nargs=1, dest='MAX_RETRIES',
-                    type=int, required=False, default=CONFIG['max_retries'],
-                    help='the maximum number of times the program will'
-                         ' attempt to reconnect to the server if ocnnection'
-                         ' is lost')
-args = parser.parse_args()
 
-if isinstance(args.AMOUNT, list):
-    # this happens sometimes
-    CONFIG['amount'] = args.AMOUNT[0]
+if CONFIG['settings']['debug']:
+    # we don't want to catch exceptions here -- let them fall, and get
+    # a full & proper traceback
+    class NeverGonnaHappenException(Exception):
+        pass
+    CATCH_EXC = NeverGonnaHappenException
 else:
-    CONFIG['amount'] = args.AMOUNT
-CONFIG['to'] = args.RCPT
-CONFIG['from'] = args.FROM
-CONFIG['server'] = args.SERVER
-CONFIG['max_retries'] = args.MAX_RETRIES
-CONFIG['debug'] = args.DEBUG or CONFIG['debug']
-CONFIG['multithread'] = suggest_thread_amt(int(CONFIG['amount']))
+    CATCH_EXC = Exception
 
 
 class FakeSTDOUT(object):
     '''Pretend to be sys.stdout, but write everything to a log AND
     the actual sys.stdout.'''
 
-    def __init__(self, stream, filename):
+    def __init__(self, stream, filename, realtime=False):
         self.terminal = stream
-        self.log = open(filename, 'w')
+        if not realtime:
+            self.log = open(filename, 'w')
         self._filename = filename
+        self.realtime = realtime
 
         self.is_empty = True
 
-    def write(self, message):
+        self.write("\n----- starting log file -----\n", True)
+        self.is_empty = True
+
+    def write(self, message, logonly=False):
         '''Impersonate sys.stdout.write()'''
-        self.terminal.write(message)
-        self.log.write(message)
+        if not logonly:
+            self.terminal.write(message)
+
+        if self.realtime:
+            with open(self._filename, 'a') as log:
+                log.write(message)
+        else:
+            self.log.write(message)
 
         self.is_empty = False
 
@@ -118,11 +88,21 @@ class FakeSTDOUT(object):
         '''Impersonate sys.stdout.flush().  Needed for py3 compatibility.'''
         self.terminal.flush()
 
+    def dump_logs(self):
+        """Dump log info already obtained, if any."""
+        if not self.is_empty:
+            self.log.close()
+            self.log = open(self._filename, 'a')
+
     def FSO_close(self):
         '''Close the log files.'''
-        self.log.close()
+        empty = self.is_empty
+        self.write("\n----- ending log file -----\n", True)
+        self.is_empty = empty
+        if not self.realtime:
+            self.log.close()
 
-        if not self.is_empty and not CONFIG['debug']:
+        if not self.is_empty and not CONFIG['settings']['debug']:
             os.remove(self._filename)
 
         return self.terminal
@@ -147,13 +127,19 @@ POPUP_ERRORS = [smtplib.SMTPAuthenticationError,
 
 try:
     with open("GUI_DOC.template", 'r') as template:
-        GUI_DOC = template.read().format(AMOUNT=CONFIG['amount'],
-                                         SUBJECT=CONFIG['subject'],
-                                         FROM=CONFIG['from'],
-                                         TO=CONFIG['to'],
-                                         SERVER=CONFIG['server'],
-                                         TEXT=CONFIG['text'],
-                                         ATTACH=CONFIG['attach'])
+        GUI_DOC = template.read().format(AMOUNT=CONFIG['settings']['amount'],
+                                         SUBJECT=CONFIG['contents']['subject'],
+                                         FROM=CONFIG['contents']['account'],
+                                         TO=CONFIG['contents']['to'],
+                                         SERVER=CONFIG['settings']['server'],
+                                         TEXT=CONFIG['contents']['text'],
+                                         ATTACH=CONFIG['contents']['attach'])
+
+    with open("validation.regex", 'r') as regexfile:
+        lines = regexfile.readlines()
+        VALIDATION_RE = ''
+        for line in lines:
+            VALIDATION_RE += line.strip()
 
 except FILE_NOT_FOUND as exc:
     print("Couldn't find necessary template file" +

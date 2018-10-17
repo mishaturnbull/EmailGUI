@@ -1,388 +1,435 @@
 # -*- coding: utf-8 -*-
 """
-Base classes, methods, worker threads and manager for multithreaded-capable
-email sending.
+This file contains the EmailSender and EmailSendHandler classes.
+
+Together, they work to dispatch a given number of emails using a given
+number of worker threads.
 """
 
-from __future__ import (division, print_function, absolute_import, generators)
-
 import threading
-import copy
-import os
-import time
 import smtplib
+import time
 import sys
 
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
-from email import encoders
-
-if sys.version_info.major == 3:
-    import tkinter.messagebox as messagebox
-elif sys.version_info.major == 2:
-    import tkMessageBox as messagebox
-
-from prereqs import CONFIG, EmergencyStop, BEST_RANGE
+from prereqs import EmergencyStop
 
 
 class EmailSendHandler(threading.Thread):
-    '''Handle a group of EmailSender classes.'''
+    """
+    This class is responsible for managing multiple worker threads to
+    send a given number of emails.
+    """
 
-    def __init__(self, bar_update_handle, **kwargs):
+    def __init__(self, coordinator):
+        """
+        Instantiate the EmailSendHandler object.
+
+        :coordinator: Must be a Coordinator object.
+        """
         super(EmailSendHandler, self).__init__()
-        self._handler = bar_update_handle
+        self.name = "WorkerThreadsManager"
 
-        self._options = kwargs
-        self._check_config()
+        self.coordinator = coordinator
 
-        if self._handler is not None:
-            self._handler['bar_progress']["maximum"] = self["amount"]
+        self.worker_amounts = []
+        self.worker_bars = []
+        self.worker_vars = []
+        self.workers = []
 
-        self.do_abort = False
-        self.is_done = False
+        self._bar_lock = threading.Lock()
 
-        self.n_sent = 0
+        self.is_done = self.do_abort = False
 
-        self._threads = []
+    def create_worker_configurations(self):
+        """
+        Creates the list of number of emails per thread for each thread using
+        the specified threading settings.
+        """
 
-    ###################################
-    # allow user to be lazy, and get things like EmailSender(...)['to']
-    # also keeps number of attributes down to one -- internal dictionary
-    # called self._options
-    def __setitem__(self, key, value):
-        self._options[key] = value
+        if self.coordinator.settings['mt_mode'] == 'none':
+            num_threads = 1
+        elif self.coordinator.settings['mt_mode'] == 'limited':
+            num_threads = self.coordinator.settings['mt_num']
+        elif self.coordinator.settings['mt_mode'] == 'unlimited':
+            num_threads = self.coordinator.settings['amount']
+        else:
+            assert False, "got mt_mode = " + \
+                          self.coordinator.settings['mt_mode']
 
-    def __contains__(self, key):
-        return key in self._options
+        emails_per_thread = self.coordinator.settings['amount'] // num_threads
 
-    def __getitem__(self, key):
-        return self._options[key]
-    # end lazy-user-ability
-    ##################################
+        # split the load evenly among all threads
+        self.worker_amounts = [emails_per_thread] * num_threads
 
-    def _check_config(self):
-        '''Yell if something is or could be wrong in the future.'''
-        necessary = ['From', 'to', 'subject', 'multithreading', 'password',
-                     'amount', 'message', 'server']
-        for attr in necessary:
-            assert attr in self._options, 'EmailSendHandler() missing ' + attr
+        # check that the total count still equals the requested number,
+        # which can happen on, for example:
+        # amount = 100
+        # n_threads = 14
+        # the above code will split the load into 14 threads, sending
+        # 7 emails per.  7*14 = 98, which is not the desired 100.
+        sending = sum(self.worker_amounts)
+        if sending != self.coordinator.settings['amount']:
+            # deal with this case by adding 1 to as many
+            # threads as we are short emails.  In the above case,
+            # this turns
+            # worker_amounts = [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
+            # into
+            # worker_amounts = [8, 8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
+            n_increases = self.coordinator.settings['amount'] - sending
+            for i in range(n_increases):
+                self.worker_amounts[i] = self.worker_amounts[i] + 1
 
-    def _final_check(self):
-        '''Make sure everything is right in one final last-minute data
-        validation check.
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.create_worker_configurations: done: " +
+                  repr(self.worker_amounts))
 
-        At the time this method is called, it assumes that
-        .generate_send_threads() has already been called and generated
-        the worker threads.'''
+    def get_amount(self, worker_index):
+        """
+        Returns how many emails a specified worker thread is required to
+        send.
+        """
+        return self.worker_amounts[worker_index]
 
-        total_emails = 0
-        for sender in self._threads:
-            total_emails += sender["amount"]
-            EmailSendHandler._check_config(sender)
+    def spawn_worker_threads(self):
+        """
+        Create the required number of worker threads.
+        """
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.spawn_worker_threads: creating work pool")
+        for i in range(len(self.worker_amounts)):
+            worker = EmailSender(self, i)
 
-        if total_emails != self["amount"]:
-            raise EmergencyStop("Number of emails about to be sent does "
-                                "not match number of emails requested!")
+            # faster to concat than format, per timeit
+            worker.name = "Thread #" + str(i)
 
-        if CONFIG['debug']:
-            print("EmailSendHandler final check completed successfully")
+            # add to the list
+            self.workers.append(worker)
 
-    def generate_send_threads(self):
-        '''Make a list of threads containing the threads to be run in their
-        necessary configuration.'''
-        mt_mode = self['multithreading'][0]
+    def start_workers(self):
+        """Start all the worker threads sending emails."""
 
-        # easiest case first.  If using unlimited threading mode, then simply
-        # spawn <amount of emails> threads that send 1 email each.
-        if mt_mode == 'ulim':
-            n_threads = self['amount']
-            n_emails_per_thread = 1
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler.start_workers: "
+                  "sending start command to pool")
+        for worker in self.workers:
+            worker.start()
 
-        # if we're on limited mode, then we need to spawn n amount of threads
-        # with a certain amount of emails each.
-        elif mt_mode == 'lim':
-            n_threads = self['multithreading'][1]
-            n_emails_per_thread = self['amount'] // n_threads
+    def init_metrics(self):
+        """
+        Set up the coordinator object's metrics.
+        """
 
-        # no multithreading.  1 thread, all the emails.
-        elif mt_mode == 'none':
-            n_threads = 1
-            n_emails_per_thread = self['amount']
-
-        # now, generate the fake options and feed them down to the worker
-        # threads
-        fake_options = copy.deepcopy(self._options)
-        fake_options['amount'] = n_emails_per_thread
-
-        for i in range(n_threads):
-            thread = EmailSender(self, **fake_options)
-            thread.name = "{} / {} / {}".format(str(i),
-                                                str(n_threads),
-                                                str(n_emails_per_thread))
-
-            self._threads.append(thread)
-
-        # double check here that we're sending the correct number
-        # of emails per issue #3.
-        if (mt_mode == "lim") and \
-           (n_threads * n_emails_per_thread != self['amount']):
-            n_leftover = self['amount'] - (n_threads * n_emails_per_thread)
-            ffake_options = copy.deepcopy(self._options)
-            ffake_options['amount'] = n_leftover
-            thread = EmailSender(self, **ffake_options)
-            thread.name = "{} / {} / {}".format(str(i + 1),
-                                                str(n_threads),
-                                                str(n_leftover))
-            self._threads.append(thread)
-
-        if CONFIG['debug']:
-            print("EmailSendHandler generated {} threads "
-                  "sending {} each".format(
-                      str(n_threads), str(n_emails_per_thread)))
+        self.coordinator.metrics['sending-rate'] = 1
+        self.coordinator.metrics['sending-time'] = 1
+        self.coordinator.metrics['remaining'] = \
+            self.coordinator.settings['amount']
+        self.coordinator.metrics['sent'] = 0
+        self.coordinator.metrics['etr'] = 0
+        self.coordinator.metrics['etc'] = time.time()
+        self.coordinator.metrics['no-active-connections'] = 0
 
     def run(self):
-
-        self.generate_send_threads()
-        self._final_check()
-        self.start_threads()
-
-        # continously monitor for all threads to be done, then mark
-        # self as done
+        """
+        Start the manager thread.
+        Automatically generates sending distribution, worker threads, and
+        runs the workers.
+        """
+        self.init_metrics()
+        self.create_worker_configurations()
+        if self.coordinator.settings['metrics']:
+            self.worker_bars, self.worker_vars = \
+                self.coordinator.gui.add_n_progress_bars(len(
+                    self.worker_amounts))
+        self.spawn_worker_threads()
+        self.start_workers()
 
         while not self.is_done:
+            for worker in self.workers:
+                if worker.is_done:
+                    if self.coordinator.settings['debug']:
+                        print("thread manager collecting " + worker.name)
+                    worker.join()
+                    self.workers.remove(worker)
 
-            for thread in self._threads:
-                if thread.is_done:
-                    thread.join()
-                    self._threads.remove(thread)
-
-            if not self._threads:
+            if not self.workers:
                 self.is_done = True
 
-    def start_threads(self):
-        '''Just do it!'''
-
-        # straightforward.  go through the list self._threads and .start()
-        # them all.
-
-        for thread in self._threads:
-            thread.start()
-
     def abort(self):
-        '''Attempt to halt the sending of more emails.'''
-        # Oh, fuck.  This is gonna be tough.
+        """
+        Send the abort signal to all worker threads and attempt to halt
+        the further sending of emails.
+        """
 
         self.do_abort = True
 
-        for thread in self._threads:
-            thread.do_abort = True
+        for worker in self.workers:
+            worker.do_abort = True
 
-        # force the abort button into reset mode by faking being done sending
-        # (which, we are, but not because all emails have been sent)
-        self.is_done = True
-        self.n_sent -= 1
-        self.sent_another_one()
+    def callback_sent(self, worker):
+        """
+        Takes action when each email is sent.  Mainly reports upwards to
+        the coordinator for updating progress information.
+        """
 
-        # I guess that'll have to do... not like we can suddenly switch the
-        # system over to an airgapped network.  I can dream.
+        self._bar_lock.acquire()
 
-    def sent_another_one(self):
-        '''Call this exactly once per email sent.
-           For updating progress bar.'''
-        self.n_sent += 1
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler received notification of a sent email")
 
-        if self._handler is not None:
-            self._handler['bar_progress']["value"] = self.n_sent
-            self._handler['label_progress'].config(text="Sent: {} / {}".format(
-                str(self.n_sent), str(self["amount"])))
+        self.coordinator.callback_sent()
 
-        # if we're done, and have a handler...
-        # change abort button to reset and switch the handler functions
-        if self.n_sent >= self["amount"] and not self.is_done:
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler pushed pbar update")
+
+        self.coordinator.metrics['sent'] += 1
+
+        if self.coordinator.settings['metrics']:
+
+            self.coordinator.metrics['remaining'] -= 1
+
+            # we have to average all the thread's sending-time average here..
+            # costly operation, but benefits to ux outweigh the detriments
+            # maybe investigate a toggle switch for metrics?
+            avgs = []
+            for worker in self.workers:
+                avgs.append(worker._sending_time)
+            avg = sum(avgs) / len(avgs)
+
+            # now compute the sending rate from the time.
+            # inversely proportional
+            rate = 1 / avg
+
+            self.coordinator.metrics['sending-time'] = avg
+            self.coordinator.metrics['sending-rate'] = rate
+
+            # est. time remaining
+            # can be computed by remaining / rate
+            self.coordinator.metrics['etr'] = \
+                self.coordinator.metrics['remaining'] / rate
+
+            # est. time completion
+            # computed by adding time.time() to etr
+            self.coordinator.metrics['etc'] = \
+                self.coordinator.metrics['etr'] + time.time()
+
+            self.coordinator.gui.pull_metrics_from_coordinator()
+
+        if self.coordinator.metrics['sent'] == \
+           self.coordinator.settings['amount']:
             self.is_done = True
+            self.coordinator.gui.root.bell()
 
-            if self._handler is not None:
-                self._handler['button_abort']["text"] = "Reset"
+        if self.coordinator.settings['debug']:
+            print("emailsendhandler notification actions complete")
 
-                messagebox.showinfo(CONFIG['title'], "Sending complete!")
+        self._bar_lock.release()
 
+    def pre_delete_actions(self):
+        """Actions to take before being discarded."""
+        if not self.is_done:
+            raise RuntimeError("Cannot reset before completing!")
+        for worker in self.workers:
+            worker.pre_delete_actions()
+        self.workers = None
+
+
+# %% Atom worker thread
 
 class EmailSender(threading.Thread):
-    '''Class to do the dirty work of sending emails.'''
+    """
+    This class is responsible for sending a given amount of emails in a
+    worker thread environment.
+    """
 
-    def __init__(self, handler, **kwargs):
-        self._handler = handler
+    def __init__(self, handler, worker_index):
+        """Instantiate the EmailSender thread object.
 
-        self._options = kwargs
-
-        self.do_abort = False
-        self.is_done = False
-
-        self.n_sent = 0
-
+        :handler: Must be an EmailSendHandler object.
+        :worker_index: int.  Must be increased incrementally by the
+                       EmailSendHandler's thread creation method.
+        """
         super(EmailSender, self).__init__()
 
-    ###################################
-    # allow user to be lazy, and get things like EmailSender(...)['to']
-    # also keeps number of attributes down to one -- internal dictionary
-    # called self._options
-    def __setitem__(self, key, value):
-        self._options[key] = value
+        self.handler = handler
 
-    def __contains__(self, key):
-        return key in self._options
+        self.worker_index = worker_index
+        self.amount = self.handler.get_amount(self.worker_index)
+        if self.handler.coordinator.settings['metrics']:
+            self.bar = self.handler.worker_bars[self.worker_index]
+            self.var = self.handler.worker_vars[self.worker_index]
 
-    def __getitem__(self, key):
-        return self._options[key]
-    # end lazy-user-ability
-    ##################################
+        self.is_done = False
+        self.last_delta = 0
+        self._n_sent = 0
+        self._sending_time = 0
 
-    def build_message(self):
-        '''Construct the MIME multipart message.'''
-        msg = MIMEMultipart()
+        self.message = self.handler.coordinator.email.getmime()
 
-        # forge return headers if requested
-        # use this weird and logic here to determine, in 1 swoop and error-free
-        # if we have a GUI handler and if so, whether the checkbox is checked.
-        # this will work because python breaks out of and gates early if the
-        # first condition is false.  therefore, if there is no GUI handler,
-        # the first argument is false, and the second test (forge-from) will
-        # never throw an AttributeError
-        if self._handler._handler and \
-           (self._handler._handler.forge_from.get() == 1):
-            sender = self['display_from']
-        else:
-            sender = self['From']
+    def establish_connection(self, retries_left=None):
+        """Establish a connection to the server specified in
+        the handler's settings dictionary.  Returns an smtplib.SMTP object."""
 
-        msg.add_header('reply-to', sender)
-        msg['From'] = "\"" + sender + "\" <" + \
-                      sender + ">"
-        msg.add_header('X-Google-Original-From',
-                       '"{df}" <{df}>'.format(df=sender))
+        if self.handler.coordinator.settings['metrics']:
+            prevar = self.var.get()
+            self.bar.config(mode='indeterminate')
+            self.bar.start(interval=200)
 
-        # multiple recipients
-        if isinstance(self['to'], list):
-            msg['To'] = COMMASPACE.join(self['to'])
-        else:
-            msg['To'] = self['to']
-        msg['Date'] = formatdate(localtime=True)
-        msg['Subject'] = self['subject']
+        retries = retries_left or self.handler.coordinator.settings[
+            'retry_establish']
 
-        # if debugging, append some useful info to the bottom of the emails
-        if CONFIG['debug']:
-
-            i, n_threads, n_mails = (int(p) for p in self.name.split(" / "))
-
-            part2 = "\n\nThread #{} of {}, sending {}/thread".format(
-                str(i + 1), str(n_threads), str(n_mails))
-
-            msg.attach(MIMEText(self['message'] + part2))
-        else:
-            # no debug message -- just attach the message
-            msg.attach(MIMEText(self['message']))
-
-        # attachments
-        for filename in self['attach']:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(open(filename, 'rb').read())
-            encoders.encode_base64(part)  # modifies in-place.  magic.
-            filepath = os.path.basename(filename)
-            part.add_header('Content-Disposition',
-                            'attachment; filename="{}"'.format(filepath))
-            msg.attach(part)
-
-        # save the message as an attribute
-        self['MIMEMessage'] = msg
-
-    def _launch(self, nsend, _recur=0, delay=0):
-        '''Send `nsend` emails.'''
-
-        CONFIG['con_per'] = self['multithreading'][2]
-
-        def connect():
-            '''Connect to the server.  Function-ized to save typing.'''
-
-            server = smtplib.SMTP(self['server'])
-            server.ehlo_or_helo_if_needed()
-
-            if server.has_extn("STARTTLS"):
-                server.starttls()
-                server.ehlo()
-
-            # by default, mercury doesn't use AUTH!
-            if server.has_extn("AUTH"):
-                server.login(self['From'], self['password'])
-
-            if CONFIG['debug']:
-                server.set_debuglevel(1)
-
-            return server
-
-        server = connect()
-
-        # try to send the emails.
-        # in the case of a 421 error, assume temp. issue and try again with the
-        # rest of the emails to be sent.
         try:
-            mime = self['MIMEMessage'].as_string()
-            for _ in BEST_RANGE(nsend):
+            server = smtplib.SMTP(self.handler.coordinator.settings['server'],
+                                  timeout=self.handler.coordinator.settings[
+                                      'connection_timeout'])
+        except ConnectionRefusedError:
+            if retries != 0:
+                if self.handler.coordinator.settings['wait_on_retry']:
+                    time.sleep(self.handler.coordinator.settings[
+                        'wait_dur_on_retry'])
+                return self.establish_connection(retries - 1)
 
-                # important! check for a thread exit flag and abort if needed
-                if self.do_abort:
-                    raise EmergencyStop("Aborting!")
-                    # hackish way to jump straight to the finally clause
-                    # that closes the connection and exits.
+        server.ehlo_or_helo_if_needed()
 
-                if CONFIG['debug']:
-                    print('Launching {} at ' .format(_) + str(time.time()))
+        if server.has_extn("starttls") and \
+           self.handler.coordinator.settings['use_starttls']:
+            server.starttls()
+            server.ehlo()
 
-                if CONFIG['con_per']:
+        if server.has_extn("auth") and \
+           self.handler.coordinator.settings['use_auth']:
+            server.login(self.handler.coordinator.contents['account'],
+                         self.handler.coordinator.contents['password'])
+
+        if self.handler.coordinator.settings['debug']:
+            server.set_debuglevel(1)
+
+        self.handler.coordinator.metrics['no-active-connections'] += 1
+
+        if self.handler.coordinator.settings['metrics']:
+            self.bar.stop()
+            self.bar.config(mode='determinate')
+            self.var.set(prevar)
+
+        return server
+
+    def send_emails(self, remaining=None, retries_left=None):
+        """
+        Send the requested number of emails for this worker thread.
+
+        :remaining: Internal recursive use only.
+        :retries_left: Internal recursive use only.
+        """
+
+        # preconfigure localized options for a reconnection case
+        sending = remaining or self.amount
+        retries_left = retries_left or \
+            self.handler.coordinator.settings['retry_dropped']
+
+        try:
+
+            server = self.establish_connection()
+
+            for i in range(sending):
+
+                if self.handler.coordinator.settings['metrics']:
+                    starttime = time.time()
+
+                if self.handler.do_abort:
+                    raise EmergencyStop("Aborting")
+
+                con_mode = self.handler.coordinator.settings['con_mode']
+                con_num = self.handler.coordinator.settings['con_num']
+
+                d_per = con_mode == 'con_per'
+                d_some = (con_mode == 'con_some') and (i % con_num == 0) \
+                    and (i != 0)
+
+                if d_per or d_some:
+                    self.handler.coordinator.metrics[
+                        'no-active-connections'] -= 1
                     server.quit()
-                    server = connect()
+                    server = self.establish_connection()
 
-                server.sendmail(self['From'], self['to'],
-                                mime.format(num=_ + 1))
-                self._handler.sent_another_one()
-                time.sleep(int(delay))
+                if self.handler.coordinator.settings['debug']:
+                    print("Sending {} at {}".format(str(i),
+                                                    str(time.time())))
+
+                server.sendmail(self.message['from'],
+                                self.handler.coordinator.contents['to'],
+                                self.message.as_string())
+
+                if self.handler.coordinator.settings['debug']:
+                    print("Sent successfully!")
+
+                if self.handler.coordinator.settings['metrics']:
+                    self.var.set(self.var.get() + 1)
+
+                    endtime = time.time()
+
+                    delta = endtime - starttime
+
+                    self._n_sent += 1
+                    self._sending_time = self._sending_time + \
+                        (delta - self._sending_time) \
+                        / self._n_sent
+                self.handler.callback_sent(self)
+                if self.handler.coordinator.settings['debug']:
+                    print("Completed send callback")
+
+                # by using timeit, it's easy to tell that
+                # this if-statement is much faster than
+                # simply doing time.sleep(delay) when delay = 0.
+                # difference is 0.017 to 0.43 seconds
+                delay = self.handler.coordinator.settings['delay']
+                if delay != 0:
+                    if self.handler.coordinator.settings['debug']:
+                        print("about to sleep for " + str(delay))
+                    time.sleep(delay)
+            server.quit()
+            self.handler.coordinator.metrics['no-active-connections'] -= 1
 
         except smtplib.SMTPServerDisconnected:
-            # first, stop trying to connect to a dead server
-            server.quit()
-            # could happen if the internet goes out temporarily.  we just
-            # try to resend and pray for the best
-            sys.stderr.write('=== Server disconnected.  Trying again. ===')
-            # use _recur to prevent recursion errors if the internet is out
-            if _recur <= CONFIG['max_retries']:
-                # send however many emails are left over
-                self._launch(nsend - _, _recur=_recur + 1)
-            else:
-                # tried too many times, give up and make it the user's
-                # problem
-                raise
-
-        except EmergencyStop:
-            # if we're connecting per email, then there will be no active
-            # connection to close and as such we don't need to do anything
-            if CONFIG['con_per']:
-                pass
-            else:
+            try:
                 server.quit()
-            return
+            except smtplib.SMTPServerDisconnected:
+                # already closed one way or another
+                pass
 
+            if retries_left != 0:
+                print("Server disconnected.  "
+                      "Trying again... {} tries left.".format(retries_left),
+                      file=sys.stderr)
+                self.send_emails(remaining=(sending - i),
+                                 retries_left=(retries_left - 1))
+            else:
+                raise
+        except EmergencyStop:
+            if self.handler.coordinator.settings['con_mode'] != 'con_per':
+                server.quit()
         finally:
-            # everything died.  just give up.
+            self.is_done = True
+
+        if server.sock is not None:
             server.quit()
+
+        if self.handler.coordinator.settings['debug']:
+            print("emailsender.send_emails: done and returning")
 
     def run(self):
-        self.build_message()
+        """
+        Start the worker thread's operation.
+        """
 
-        if CONFIG['debug']:
-            mime_msg = self['MIMEMessage'].as_string()
-            print("Launching {} copies of message:\n{}".format(self['amount'],
-                                                               mime_msg))
+        if self.handler.coordinator.settings['debug']:
+            print("Worker thread {} starting operation at {}".format(
+                self.name, time.time()))
 
-        self._launch(self['amount'], delay=self['delay'])
+        self.send_emails()
 
-        self.is_done = True
+        if self.handler.coordinator.settings['debug']:
+            print("Worker thread {} ending operation at {}".format(
+                self.name, time.time()))
+
+    def pre_delete_actions(self):
+        """Actions to take before being deleted."""
+        assert self.is_done

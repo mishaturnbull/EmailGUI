@@ -3,3 +3,4 @@ tempEmail.py
 __pycache__/
 .spyproject/
 my-settings.json
+.idea/
