@@ -345,5 +345,5 @@ class SMTPResponseCodeLookupGUI(GUIBase):
         self._add_button("Lookup", callback=self.do_lookup, row=0, column=1,
                          sticky='w')
 
-        self._add_changinglabel(text=" "*60, varname="output", row=0,
+        self._add_changinglabel(text=" " * 60, varname="output", row=0,
                                 column=2, sticky='w')

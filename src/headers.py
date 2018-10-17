@@ -96,10 +96,10 @@ class Headers(object):
     def header_list(self):
         """Get the headers contained in the headers dictionary list as a
         list."""
-        l = []
+        headers = []
         for h in self.headers:
-            l.append(h['name'])
-        return l
+            headers.append(h['name'])
+        return headers
 
     def check_for_required_headers(self):
         """Determine whether or not all the required headers are present."""

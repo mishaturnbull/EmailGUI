@@ -324,7 +324,6 @@ class EmailGUI(GUIBase):
                                'autofill-servers'],
                            row=6, column=1, columnspan=8, sticky='w')
 
-
         # attachments
         self._add_label("Attachments:", row=7, column=0, sticky='w')
         self._add_button("Browse", self.coordinator.callbacks['browse'],
@@ -530,7 +529,8 @@ class EmailGUI(GUIBase):
     def dump_values_to_coordinator(self):
         """Do everything we'd normally do, except also add the password."""
         super(EmailGUI, self).dump_values_to_coordinator()
-        self.coordinator.contents['password'] = self.variables['password'].get()
+        self.coordinator.contents['password'] = \
+            self.variables['password'].get()
 
     def pull_metrics_from_coordinator(self):
         """Grab the metrics from the coordinator, convert to UX-friendly

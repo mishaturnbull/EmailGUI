@@ -44,17 +44,6 @@ CONFIG['contents']['text'] = '\n'.join(CONFIG['contents']['text'])
 MAX_RESP_LEN = max([len(CONFIG['SMTP_resp_codes'][i]) for i in
                     CONFIG['SMTP_resp_codes']])
 
-#if isinstance(args.AMOUNT, list):
-#    # this happens sometimes
-#    CONFIG['settings']['amount'] = args.AMOUNT[0]
-#else:
-#    CONFIG['settings']['amount'] = args.AMOUNT
-#CONFIG['contents']['to'] = args.RCPT
-#CONFIG['contents']['from'] = args.FROM
-#CONFIG['settings']['server'] = args.SERVER
-#CONFIG['settings']['max_retries'] = args.MAX_RETRIES
-#CONFIG['settings']['debug'] = args.DEBUG or CONFIG['settings']['debug']
-
 
 if CONFIG['settings']['debug']:
     # we don't want to catch exceptions here -- let them fall, and get
