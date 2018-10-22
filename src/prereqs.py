@@ -33,8 +33,9 @@ try:
     with open("settings.json", 'r') as config:
         CONFIG = json.load(config)
 except FILE_NOT_FOUND:
-    sys.stderr.write("Couldn't find config file [settings.json]!")
-    sys.exit(0)
+    # unpack the default
+    with open("settings.default.json", 'r') as config:
+        CONFIG = json.load(config)
 
 
 # We need to join the message on newlines because it's stored in JSON

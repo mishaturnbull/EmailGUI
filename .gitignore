@@ -4,3 +4,7 @@ __pycache__/
 .spyproject/
 my-settings.json
 .idea/
+*.spec
+build/
+dist/
+*forged*

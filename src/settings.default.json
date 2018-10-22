@@ -1,0 +1,91 @@
+{
+    "contents": {
+        "account": "spambot@127.0.0.1",
+        "to": "misha@slippery-weasel",
+        "subject": "Apology",
+        "attach": "",
+        "text": [
+            "Dear recipient,",
+            "I am writing to apologize for incessantly writing you emails.  It",
+            "must be tiresome to spend all day deleting them.",
+            "",
+            "P.S. Please forgive me for sending this email.  I shall immediately",
+            "dispatch a second email in apology."
+        ],
+        "headers": {
+            "sender": "spambot@slippery-weasel.com",
+            "from": "russian-hacker@slippery-weasel.com",
+            "reply-to": "",
+            "date": "",
+            "message-id": "",
+            "comments": "",
+            "keywords": "",
+            "X-Virus-Scanned": "Debian amavisd-new at 127.0.0.1"
+        }
+    },
+    "settings": {
+        "server": "127.0.0.1:25",
+        "mt_mode": "none",
+        "mt_num": 0,
+        "title": "SpamBotFromHell",
+        "debug": true,
+        "realtime": false,
+        "metrics": true,
+        "delay": 0,
+        "retry_dropped": 5,
+        "retry_establish": 5,
+        "amount": 10,
+        "log_stdout": "Email_Log.out",
+        "log_stderr": "Email_Log_Err.out",
+        "con_mode": "con_once",
+        "con_num": 30,
+        "wait_on_retry": true,
+        "wait_dur_on_retry": 10,
+        "connection_timeout": 10,
+        "confirmation_msg": [
+            "Are you certain you wish to proceed?",
+            "This cannot reliably be undone and can have unfortunate results!"
+        ],
+        "width": 100,
+        "use_starttls": true,
+        "use_auth": true
+    },
+    "SMTP_resp_codes": {
+        "200": "Nonstandard success response",
+        "211": "System status, or system help reply",
+        "214": "Help message",
+        "220": "<domain> Service ready",
+        "221": "<domain> Service closing transmission channel",
+        "250": "Requested mail action okay, completed",
+        "251": "User not local; will forward to <forward-path>",
+        "252": "Cannot VRFY user, but will accept message and attempt delivery",
+        "354": "Start mail input; end with <CRLF>.<CRLF>",
+        "421": "<domain> Service not available, closing transmission channel",
+        "450": "Requested mail action not taken: mailbox unavailable",
+        "451": "Requested action aborted: local error in processing",
+        "452": "Requested action not taken: insufficient system storage",
+        "500": "Syntax error, command unrecognized",
+        "501": "Syntax error in parameters or arguments",
+        "502": "Command not implemented",
+        "503": "Bad sequence of commands",
+        "504": "Command parameter not implemented",
+        "521": "<domain> does not accept mail",
+        "530": "Access denied",
+        "550": "Requested action not taken: mailbox unavailable",
+        "551": "User not local, please try <forward-path>",
+        "552": "Request mail action aborted: exceeded storage allocation",
+        "553": "Requested action not taken: mailbox name not allowed",
+        "554": "Transaction failed"
+    },
+    "autofill-servers": [
+        "127.0.0.1:25",
+        "smtp.gmail.com:587",
+        "smtp.gmail.com:465",
+        "aspmx.l.gmail.com:25",
+        "smtp.mail.yahoo.com:587",
+        "smtp.mail.yahoo.com:465",
+        "smtp.live.com:465",
+        "smtp.live.com:25",
+        "smtp.aol.com:587"
+    ]
+}
