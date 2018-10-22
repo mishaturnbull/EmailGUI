@@ -11,6 +11,7 @@ import sys
 import json
 import smtplib
 import os
+import platform
 
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
@@ -29,12 +30,32 @@ else:
     raise RuntimeError("This code is not designed to be run outside of Python"
                        " 2 or 3!  Contact developer to fix this issue.")
 
+
+_IS_MAC = platform.system() == 'Darwin'
+
+
+# stolen this bit of code from a reply to PyInstaller issue #1804
+# https://github.com/pyinstaller/pyinstaller/
+# issues/1804#issuecomment-332778156
+# thanks, @StefGre!
+# modifications were made, however, to suit the cross-platform nature
+# of this program
+def resource_path(relative_path):  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return relative_path
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(
+            os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+
 try:
-    with open("settings.json", 'r') as config:
+    with open(resource_path("settings.json"), 'r') as config:
         CONFIG = json.load(config)
 except FILE_NOT_FOUND:
     # unpack the default
-    with open("settings.default.json", 'r') as config:
+    with open(resource_path("settings.default.json")
+            , 'r') as config:
         CONFIG = json.load(config)
 
 
