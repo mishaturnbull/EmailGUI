@@ -13,6 +13,11 @@ import smtplib
 import os
 import platform
 
+wdir = os.listdir(".")
+print(wdir)
+print(getattr(sys, '_MEIPASS'))
+print(os.listdir(sys._MEIPASS))
+
 if sys.version_info.major == 3:
     # use xrange if python 2 to speed things up
     # in py3, range is what xrange was
@@ -42,8 +47,8 @@ _IS_MAC = platform.system() == 'Darwin'
 # of this program
 def resource_path(relative_path):  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return relative_path
+    #if not _IS_MAC:
+    #s    return relative_path
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(
             os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
@@ -54,8 +59,7 @@ try:
         CONFIG = json.load(config)
 except FILE_NOT_FOUND:
     # unpack the default
-    with open(resource_path("settings.default.json")
-            , 'r') as config:
+    with open(resource_path("settings.default.json"), 'r') as config:
         CONFIG = json.load(config)
 
 
