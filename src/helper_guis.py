@@ -93,6 +93,11 @@ class HeaderGUI(GUIBase):
         if self._row >= self._max_rows:
             self._row = 1
             self._column += 2
+            self._add_custom_header_button.grid(row=0,
+                                                column=0,
+                                                columnspan=self._column*2,
+                                                sticky='ew')
+
 
         self.variables.append({"name": header_info['name'],
                                "value": None,
@@ -122,9 +127,10 @@ class HeaderGUI(GUIBase):
         self.root.wm_title("Edit Headers")
         self.root.config(**self.colors)
 
-        self._add_button('Add Custom Header', self._add_custom_header,
-                         row=0, column=int(self._column / 2), columnspan=2,
-                         sticky='ew')
+        btn = self._add_button('Add Custom Header', self._add_custom_header,
+                               row=0, column=int(self._column / 2),
+                               columnspan=2, sticky='ew')
+        self._add_custom_header_button = btn
 
         for header in self.coordinator.headers.headers:
             self._spawn_field(header)
