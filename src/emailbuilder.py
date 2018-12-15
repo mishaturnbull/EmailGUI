@@ -65,16 +65,28 @@ class Email(object):
 
         self.mimemulti = MIMEMultipart()
 
-    def add_text(self, text):
+    def add_text(self, text, duplicate=True):
         """Attach a chunk of text to the message."""
-        mimetext = MIMEText(text)
-        self.mimemulti.attach(mimetext)
+        if duplicate:
+            mimetext = MIMEText(text)
+            self.mimemulti.attach(mimetext)
+        else:
+            # pause to think about whether we want to actually add or not
+            # the duplicate=False flag specifies that we should not add the
+            # payload if it would create a duplicate
+            mimetext = MIMEText(text)
+            # now we have something to compare to
+            for p in self.mimemulti._payload:
+                if p._payload == mimetext._payload:
+                    return
+            # if we got here, no duplicate -> go ahead and add
+            self.mimemulti.attach(mimetext)
 
     def add_header(self, header, value, **options):
         """Add a header to the message header section."""
         self.mimemulti.add_header(header, value, **options)
 
-    def add_attachment(self, filename):
+    def add_attachment(self, filename, duplicate=True):
         """Add a file attachment."""
         # I'm absolutely sure I stole this code off stackoverflow somewhere
         # about 2 years ago, but I have absolutely no idea where.
@@ -85,16 +97,23 @@ class Email(object):
         filepath = os.path.basename(filename)
         part.add_header('Content-Disposition',
                         'attachment; filename="{}"'.format(filepath))
-        self.mimemulti.attach(part)
+
+        if duplicate:
+            self.mimemulti.attach(part)
+        else:
+            for p in self.mimemulti._payload:
+                if p._payload == part._payload:
+                    return
+            self.mimemulti.attach(part)
 
     def pull_data_from_coordinator(self):
         """Pull in the data from the coordinator."""
-        self.add_text(self.coordinator.contents['text'])
+        self.add_text(self.coordinator.contents['text'], duplicate=False)
         for attach in self.coordinator.contents['attach'].split(','):
             if not attach:
                 continue
             attach = attach.strip()
-            self.add_attachment(attach)
+            self.add_attachment(attach, duplicate=False)
         self.headers.dump_headers_to_email()
         # subject is technically a header in MIME...
         self.add_header('subject', self.coordinator.contents['subject'])

@@ -7,6 +7,7 @@ import sys
 import re
 
 from gui import GUIBase
+from gui_addons import Tooltip
 from helpers import verify_to, verify_to_email, check_rfc_5322
 
 if sys.version_info.major == 3:
@@ -280,11 +281,13 @@ class EmailEditorGUI(GUIBase):
 
     def close_action(self):
         """Deregister the GUI with the coordinator."""
-        self.sync_to_main()
+        #self.sync_to_main()
+        pass
 
     def sync_from_main(self):
         """Pull the data (message) from the coordinator."""
         self.spawn_payload_selectors()
+        self.switch_to_payload()
 
     def sync_to_main(self):
         """Push data (message) back to coordinator."""
@@ -334,20 +337,24 @@ class EmailEditorGUI(GUIBase):
                                                 height=20)
         self.editor.grid(row=0, column=0)
 
-        self._add_button('Random Payload',
-                         self.coordinator.callbacks['addRandomPayload'],
-                         root=leftframe,
-                         row=1, column=0, sticky='ew')
+        rp = self._add_button('Random Payload',
+                              self.coordinator.callbacks['addRandomPayload'],
+                              root=leftframe,
+                              row=1, column=0, sticky='ew')
+        Tooltip(rp, text="Add lorem ipsum text")
 
-        self._add_button('Empty Text',
-                         self.coordinator.callbacks['addEmptyPayload'],
-                         root=leftframe,
-                         row=0, column=0, sticky='ew')
+        et = self._add_button('Empty Text',
+                              self.coordinator.callbacks['addEmptyPayload'],
+                              root=leftframe,
+                              row=0, column=0, sticky='ew')
+        Tooltip(et, text="Empty text box to add arbitrary text")
 
-        self._add_button("File Attachment",
-                         self.coordinator.callbacks['addFilePayload'],
-                         root=leftframe,
-                         row=2, column=0, sticky='ew')
+        fa = self._add_button("File Attachment",
+                              self.coordinator.callbacks['addFilePayload'],
+                              root=leftframe,
+                              row=2, column=0, sticky='ew')
+        Tooltip(fa, text="Generally a bad idea to add files this way!  Use the"
+                " attach option in the main window")
 
     def spawn_payload_selectors(self):
         """Create the GUI elements to select different message payloads."""
@@ -360,8 +367,6 @@ class EmailEditorGUI(GUIBase):
 
         i = 0
         for payload in payloads:
-            print("Adding selector for a payload")
-
             sel = tk.Radiobutton(self.payframes, text=str(i),
                                  variable=self.sel_payload,
                                  value=i,
