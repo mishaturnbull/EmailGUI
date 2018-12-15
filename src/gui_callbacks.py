@@ -200,6 +200,7 @@ CALLBACKS.append(handle_flushlogs)
 
 def handle_emailEditWindow(coordinator):
     """Spawn the more in-depth email editor."""
+    coordinator.email.pull_data_from_coordinator()
     egui = EmailEditorGUI(coordinator)
     egui.spawn_gui_elements()
     egui.sync_from_main()
@@ -217,6 +218,7 @@ def handle_addRandomPayload(coordinator):
                                      parent=editor.root)
     text = PayloadGenerator(coordinator).get_random_text(nbytes)
     coordinator.email.add_text(text)
+    editor.spawn_payload_selectors()
 
 
 CALLBACKS.append(handle_addRandomPayload)

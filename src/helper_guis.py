@@ -274,13 +274,18 @@ class EmailEditorGUI(GUIBase):
                                              coordinator.gui.root,
                                              'editor')
 
+        self._active_payload = None
+        self.sel_payload = tk.IntVar(0)
+        self._pay_sels = []
+
     def close_action(self):
         """Deregister the GUI with the coordinator."""
         self.sync_to_main()
 
     def sync_from_main(self):
         """Pull the data (message) from the coordinator."""
-        self.editor.insert(tk.END, self.coordinator.contents['text'])
+        print("Syncing data from upstream")
+        self.spawn_payload_selectors()
 
     def sync_to_main(self):
         """Push data (message) back to coordinator."""
@@ -292,11 +297,33 @@ class EmailEditorGUI(GUIBase):
         )
         self.coordinator.active_guis['main'].dump_values_to_coordinator()
 
+    def switch_to_payload(self):
+        """Determine which payload the user has selected, and push its contents
+        to the editor frame."""
+
+        # first, dump & clear whatever is in the widget
+        if self._active_payload is not None:
+            self._active_payload.set_payload(self.editor.get("1.0", "end-1c"))
+            self.editor.delete("1.0", tk.END)
+
+        # now, insert the new payload
+        # indicies of our _pay_sels and the EmailBuilder's internal mimemulti
+        # object line up, so we can simply display the payload at the index of
+        # our .sel_payload.get() value
+        payloads = self.coordinator.email.getmime()._payload
+        self._active_payload = payloads[self.sel_payload.get()]
+        self.editor.insert(tk.END, self._active_payload.as_string())
+
+
     def spawn_gui_elements(self):
         """Create the GUI elements necessary."""
-        leftframe = tk.LabelFrame(self.root, text="Payloads",
+        leftframe = tk.LabelFrame(self.root, text="Add Payload",
                                   relief=tk.RIDGE, **self.colors)
-        leftframe.grid(row=0, column=0, rowspan=4, columnspan=1, sticky='w')
+        leftframe.grid(row=0, column=0, columnspan=1, sticky='w')
+
+        self.payframes = tk.LabelFrame(self.root, text="Payloads",
+                                       relief=tk.RIDGE, **self.colors)
+        self.payframes.grid(row=1, column=0, columnspan=1, sticky='w')
 
         rightframe = tk.Frame(self.root, **self.colors)
         rightframe.grid(row=0, column=1, rowspan=10, columnspan=10,
@@ -312,6 +339,29 @@ class EmailEditorGUI(GUIBase):
                          self.coordinator.callbacks['addRandomPayload'],
                          root=leftframe,
                          row=0, column=0, sticky='ew')
+
+    def spawn_payload_selectors(self):
+        """Create the GUI elements to select different message payloads."""
+        payloads = self.coordinator.email.getmime()._payload
+
+        # first, despawn any old selectors to avoid overwriting problems
+        for selector in self._pay_sels:
+            selector.destroy()
+        self.sel_payload.set(0)
+
+        i = 0
+        for payload in payloads:
+            print("Adding selector for a payload")
+
+            sel = tk.Radiobutton(self.payframes, text=str(i),
+                                 variable=self.sel_payload,
+                                 value=i,
+                                 command=self.switch_to_payload,
+                                 **self.colors)
+            sel.grid(row=i, column=0, sticky='w')
+            self._pay_sels.append(sel)
+            i += 1
+
 
 
 class SMTPResponseCodeLookupGUI(GUIBase):
