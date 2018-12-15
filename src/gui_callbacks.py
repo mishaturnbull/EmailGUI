@@ -224,6 +224,26 @@ def handle_addRandomPayload(coordinator):
 CALLBACKS.append(handle_addRandomPayload)
 
 
+def handle_addEmptyPayload(coordinator):
+    editor = coordinator.active_guis['editor']
+    coordinator.email.add_text('')
+    editor.spawn_payload_selectors()
+
+
+CALLBACKS.append(handle_addEmptyPayload)
+
+
+def handle_addFilePayload(coordinator):
+    editor = coordinator.active_guis['editor']
+    editor.root.grab_set()
+    filename = filedialog.askopenfilename()
+    coordinator.email.add_attachment(filename)
+    editor.spawn_payload_selectors()
+
+
+CALLBACKS.append(handle_addFilePayload)
+
+
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""

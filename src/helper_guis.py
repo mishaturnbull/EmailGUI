@@ -338,7 +338,17 @@ class EmailEditorGUI(GUIBase):
         self._add_button('Random Payload',
                          self.coordinator.callbacks['addRandomPayload'],
                          root=leftframe,
+                         row=1, column=0, sticky='ew')
+
+        self._add_button('Empty Text',
+                         self.coordinator.callbacks['addEmptyPayload'],
+                         root=leftframe,
                          row=0, column=0, sticky='ew')
+
+        self._add_button("File Attachment",
+                         self.coordinator.callbacks['addFilePayload'],
+                         root=leftframe,
+                         row=2, column=0, sticky='ew')
 
     def spawn_payload_selectors(self):
         """Create the GUI elements to select different message payloads."""
