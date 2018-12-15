@@ -284,7 +284,6 @@ class EmailEditorGUI(GUIBase):
 
     def sync_from_main(self):
         """Pull the data (message) from the coordinator."""
-        print("Syncing data from upstream")
         self.spawn_payload_selectors()
 
     def sync_to_main(self):
@@ -303,7 +302,7 @@ class EmailEditorGUI(GUIBase):
 
         # first, dump & clear whatever is in the widget
         if self._active_payload is not None:
-            self._active_payload.set_payload(self.editor.get("1.0", "end-1c"))
+            self._active_payload._payload = self.editor.get("1.0", "end-1c")
             self.editor.delete("1.0", tk.END)
 
         # now, insert the new payload
@@ -312,7 +311,7 @@ class EmailEditorGUI(GUIBase):
         # our .sel_payload.get() value
         payloads = self.coordinator.email.getmime()._payload
         self._active_payload = payloads[self.sel_payload.get()]
-        self.editor.insert(tk.END, self._active_payload.as_string())
+        self.editor.insert(tk.END, self._active_payload._payload)
 
 
     def spawn_gui_elements(self):
