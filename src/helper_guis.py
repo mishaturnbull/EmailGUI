@@ -154,8 +154,6 @@ class VerificationGUI(GUIBase):
         for line in lines:
             pattern += line.strip()
 
-        self.regex = re.compile(pattern)
-
     def _add_entry(self, varname, root=None, width=None, entry_opts=None,
                    **grids):
         """Adds a tk.Entry element to the window, and links the variable
@@ -176,12 +174,12 @@ class VerificationGUI(GUIBase):
         return entry
 
     def verify_syntax(self):
-        """Verify that the email provided is compliant with RFC5322 grammar."""
+        """Verify that the email provided is compliant with RFC2822 grammar."""
         self.variables['output_5322'].set('Please wait...')
         if check_rfc_5322(self.coordinator.gui.variables['to'].get()):
-            msg = "Email is RFC5322 grammar compliant"
+            msg = "Email is RFC2822 grammar compliant"
         else:
-            msg = "Email is *not* compliant with RFC5322 grammar"
+            msg = "Email is *not* compliant with RFC2822 grammar"
 
         self.variables['output_5322'].set(msg)
 
@@ -250,7 +248,7 @@ class VerificationGUI(GUIBase):
         self._add_label("Server: ", row=3, column=0, sticky='w')
         self._add_entry("server", row=3, column=1, sticky='ew')
 
-        self._add_button("RFC5322", self.verify_syntax,
+        self._add_button("RFC2822", self.verify_syntax,
                          row=4, column=0, sticky='w')
         self._add_changinglabel("", 'output_5322', row=4, column=1, sticky='w')
 
