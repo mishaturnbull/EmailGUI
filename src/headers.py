@@ -101,6 +101,13 @@ class Headers(object):
             headers.append(h['name'])
         return headers
 
+    def get_header(self, header_name):
+        """Given a header name"""
+        for header in self.headers:
+            if header['name'] == header_name:
+                return header
+        return None
+
     def check_for_required_headers(self):
         """Determine whether or not all the required headers are present."""
         for header in REQUIRED_HEADERS:
