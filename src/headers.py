@@ -55,9 +55,9 @@ class Headers(object):
             # updating an existing record
             # first, check to make sure there's only 1 existing
             # copy in the list
-            list = self.header_list
+            lst = self.header_list
             try:
-                idx = list.index(header, list.index(header), len(list) - 1)
+                idx = lst.index(header, lst.index(header), len(lst) - 1)
             except ValueError:
                 # good, a ValueError is expected if the item cannot
                 # be found
