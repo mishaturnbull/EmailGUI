@@ -39,6 +39,8 @@ class HeaderGUI(GUIBase):
         self._row = 1
         self._column = 0
 
+        self.leftside = self.rightside = None  # defined later in gui basics
+
     def _add_entry(self, idx, root=None, width=None, entry_opts=None,
                    **grids):
         """Wrapper for GUIBase's _add_entry method.  Autofills from the
@@ -89,6 +91,19 @@ class HeaderGUI(GUIBase):
         """Output the values to the header class."""
         self.coordinator.headers.pull_from_header_gui(self)
 
+    # copied from headers
+    # TODO: possible to add a cache of some sort here?
+    # would need to clear the cache every time self.headers gets
+    # updated in any way...
+    @property
+    def header_list(self):
+        """Get the headers contained in the headers dictionary list as a
+        list."""
+        headers = []
+        for h in self.variables:
+            headers.append(h['name'])
+        return headers
+
     def _spawn_field(self, header_info):
         """Add a header field in the next spot with default name & value."""
         if self._row >= self._max_rows:
@@ -99,14 +114,13 @@ class HeaderGUI(GUIBase):
                                                 columnspan=self._column*2,
                                                 sticky='ew')
 
-
         self.variables.append({"name": header_info['name'],
                                "value": None,
                                "enabled": None})
 
         self._add_entry(-1, row=self._row, column=(self._column + 1),
-                        sticky='w')
-        self._add_box(-1, header_info['name'] + ":",
+                        sticky='w', root=self.rightside)
+        self._add_box(-1, header_info['name'] + ":", root=self.rightside,
                       row=self._row, column=self._column, sticky='w')
 
         self._row += 1
@@ -125,12 +139,25 @@ class HeaderGUI(GUIBase):
     def spawn_gui_basics(self):
         """Spawn the base parts of the GUI."""
 
+        self.leftside = tk.LabelFrame(self.root, text="Auto Config",
+                                      relief=tk.RIDGE, **self.colors)
+        self.rightside = tk.LabelFrame(self.root, text="Headers",
+                                       relief=tk.RIDGE, **self.colors)
+        self.leftside.grid(row=0, column=0)
+        self.rightside.grid(row=0, column=1)
+
         self.root.wm_title("Edit Headers")
         self.root.config(**self.colors)
 
+        # auto-config left side frame
+        self._add_button("Loopback backscatter spam",
+                         self.coordinator.callbacks['backscatterEn'],
+                         root=self.leftside, row=0, column=0, sticky='ew')
+
         btn = self._add_button('Add Custom Header', self._add_custom_header,
                                row=0, column=int(self._column / 2),
-                               columnspan=2, sticky='ew')
+                               columnspan=2, sticky='ew',
+                               root=self.rightside)
         self._add_custom_header_button = btn
 
         for header in self.coordinator.headers.headers:

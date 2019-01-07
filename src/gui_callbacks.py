@@ -252,6 +252,29 @@ def _refresh_header_gui(coordinator):
     coordinator.callbacks['headers']()
 
 
+def handle_backscatterEn(coordinator):
+    """Autoconf for a loopback backscatter setup where reply-to is the same
+    as the recipient address"""
+    # this has to be done through the GUI.
+    # if we go through coordinator.email.headers.add_or_update(...),
+    # as soon as the headerGUI is refreshed, its data is dumped back to
+    # coordinator.email.headers.headers.  Kinda what we want, but at this point
+    # the GUI doesn't yet know about the change, so it erases it.
+    # to prevent rewriting all the code, just go through the GUI instead.
+    hgui = coordinator.active_guis['headers']
+    recip = coordinator.contents['to']
+
+    idx = hgui.header_list.index('reply-to')
+    hdr = hgui.variables[idx]
+    hdr['value'].set(recip)
+    hdr['enabled'].set(True)
+
+    #_refresh_header_gui(coordinator)
+
+
+CALLBACKS.append(handle_backscatterEn)
+
+
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""

@@ -104,6 +104,10 @@ class Headers(object):
     def get_header(self, header_name):
         """Given a header name"""
         for header in self.headers:
+            if self.coordinator.settings['debug']:
+                print("  Hunting for header '{}', currently on '{}'".format(
+                    header_name, header
+                ))
             if header['name'] == header_name:
                 return header
         return None
