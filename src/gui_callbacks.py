@@ -269,8 +269,6 @@ def handle_backscatterEn(coordinator):
     hdr['value'].set(recip)
     hdr['enabled'].set(True)
 
-    #_refresh_header_gui(coordinator)
-
 
 CALLBACKS.append(handle_backscatterEn)
 
