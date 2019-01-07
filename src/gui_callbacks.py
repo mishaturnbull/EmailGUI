@@ -244,6 +244,14 @@ def handle_addFilePayload(coordinator):
 CALLBACKS.append(handle_addFilePayload)
 
 
+# this is for helping specifically header edits
+def _refresh_header_gui(coordinator):
+    hgui = coordinator.active_guis['headers']
+    hgui._close_action()
+    # now, hgui is dead
+    coordinator.callbacks['headers']()
+
+
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""
