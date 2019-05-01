@@ -273,6 +273,18 @@ def handle_backscatterEn(coordinator):
 CALLBACKS.append(handle_backscatterEn)
 
 
+def handle_randomDisplayFrom(coordinator):
+    """Autoconf for a randomized display-from tag."""
+    hgui = coordinator.active_guis['headers']
+
+    idx = hgui.header_list.index('display-from')
+    hdr = hgui.variables[idx]
+    hdr['value'].set("temp@temp.com")
+    hdr['enabled'].set(True)
+
+
+CALLBACKS.append(handle_randomDisplayFrom)
+
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""

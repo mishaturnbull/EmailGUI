@@ -160,6 +160,12 @@ class HeaderGUI(GUIBase):
                                root=self.rightside)
         self._add_custom_header_button = btn
 
+        self._add_button("Random Display From",
+                         self.coordinator.callbacks['randomDisplayFrom'],
+                         root=self.leftside, row=1, column=0, sticky='ew')
+
+
+
         for header in self.coordinator.headers.headers:
             self._spawn_field(header)
 
