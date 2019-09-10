@@ -285,6 +285,7 @@ def handle_randomDisplayFrom(coordinator):
 
 CALLBACKS.append(handle_randomDisplayFrom)
 
+
 # don't add this to CALLBACKS
 def handle_error(coordinator):
     """Display an error message for the user."""
