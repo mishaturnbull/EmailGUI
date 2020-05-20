@@ -9,6 +9,7 @@ import math
 import re
 import time
 import threading
+import requests
 
 from prereqs import VALIDATION_RE
 
@@ -132,3 +133,11 @@ def check_rfc_5322(address):
     regex = re.compile(VALIDATION_RE)
     success = regex.search(address)
     return success is not None
+
+
+def wan_ip():
+    """
+    Returns our current WAN IP.
+    :return: String like "123.234.123.234"
+    """
+    return requests.get('https://api.ipify.org').text

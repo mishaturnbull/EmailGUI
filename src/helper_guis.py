@@ -125,14 +125,18 @@ class HeaderGUI(GUIBase):
 
         self._row += 1
 
-    def _add_custom_header(self):
-        """Add a custom header box."""
+    def add_custom_header(self):
+        """Get user input for what header to enter."""
         self.root.grab_set()
         header = simpledialog.askstring("Add Custom Header",
                                         "Enter the header name:",
                                         parent=self.root)
         if header is None:
             return  # user hit cancel
+        self._add_custom_header(header)
+
+    def _add_custom_header(self, header):
+        """Adds a new box with the given header name."""
         self.coordinator.headers.add_header(header, "")
         self._spawn_field(self.coordinator.headers.headers[-1])
 
@@ -154,7 +158,7 @@ class HeaderGUI(GUIBase):
                          self.coordinator.callbacks['backscatterEn'],
                          root=self.leftside, row=0, column=0, sticky='ew')
 
-        btn = self._add_button('Add Custom Header', self._add_custom_header,
+        btn = self._add_button('Add Custom Header', self.add_custom_header,
                                row=0, column=int(self._column / 2),
                                columnspan=2, sticky='ew',
                                root=self.rightside)
@@ -163,6 +167,10 @@ class HeaderGUI(GUIBase):
         self._add_button("Random Display From",
                          self.coordinator.callbacks['randomDisplayFrom'],
                          root=self.leftside, row=1, column=0, sticky='ew')
+
+        self._add_button("Attempt SPF forgery",
+                         self.coordinator.callbacks['forgeSPF'],
+                         root=self.leftside, row=2, column=0, sticky='ew')
 
 
 

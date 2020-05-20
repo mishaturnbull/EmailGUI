@@ -7,7 +7,7 @@ import sys
 import webbrowser
 import traceback
 
-from helpers import suggest_thread_amt
+from helpers import suggest_thread_amt, wan_ip
 from prereqs import GUI_DOC
 from helper_guis import HeaderGUI, VerificationGUI, EmailEditorGUI, \
     SMTPResponseCodeLookupGUI
@@ -277,13 +277,45 @@ def handle_randomDisplayFrom(coordinator):
     """Autoconf for a randomized display-from tag."""
     hgui = coordinator.active_guis['headers']
 
-    idx = hgui.header_list.index('display-from')
+    try:
+        idx = hgui.header_list.index('display-from')
+    except ValueError:
+        # header isn't in the list, add it ourselves
+        hgui._add_custom_header('display-from')
+        idx = hgui.header_list.index('display-from')
     hdr = hgui.variables[idx]
     hdr['value'].set("temp@temp.com")
     hdr['enabled'].set(True)
 
 
 CALLBACKS.append(handle_randomDisplayFrom)
+
+
+def handle_forgeSPF(coordinator):
+    """Autoconf for an attempt at forging an SPF validity tag"""
+    hgui = coordinator.active_guis['headers']
+
+    wanip = wan_ip()
+    server = coordinator.active_guis['main'].variables['server'].get()
+    sender = coordinator.active_guis['main'].variables['account'].get()
+
+    val = (
+        'Pass (mailfrom) identity=mailfrom; client-ip={wanip}; '
+        'helo={server}; envelope-from={sender}; '
+        'receiver=<UNKNOWN>'
+    ).format(wanip=wanip, server=server, sender=sender)
+
+    try:
+        idx = hgui.header_list.index('Received-Spf')
+    except ValueError:
+        hgui._add_custom_header('Received-Spf')
+        idx = hgui.header_list.index('Received-Spf')
+    hdr = hgui.variables[idx]
+    hdr['value'].set(val)
+    hdr['enabled'].set(True)
+
+
+CALLBACKS.append(handle_forgeSPF)
 
 
 # don't add this to CALLBACKS
