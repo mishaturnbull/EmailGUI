@@ -44,7 +44,9 @@
         "connection_timeout": 10,
         "confirmation_msg": [
             "Are you certain you wish to proceed?",
-            "This cannot reliably be undone and can have unfortunate results!"
+            "This cannot reliably be undone and can have unfortunate results!",
+            "By clicking Yes, you assume liability as described in the README.txt",
+            "document distributed with this software."
         ],
         "width": 100,
         "use_starttls": true,
