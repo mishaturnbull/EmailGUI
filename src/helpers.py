@@ -10,6 +10,7 @@ import re
 import time
 import threading
 import requests
+import random
 
 from prereqs import VALIDATION_RE
 
@@ -141,3 +142,14 @@ def wan_ip():
     :return: String like "123.234.123.234"
     """
     return requests.get('https://api.ipify.org').text
+
+
+def random_addr(coordinator):
+    """
+    Given the coordinator, picks from the list of random email addresses specified
+    in the settings.json file.
+    :param coordinator: Coordinator object.
+    :return: random email address
+    """
+    emails = coordinator.settings['allowed-random-addresses']
+    return random.choice(emails)

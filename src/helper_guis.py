@@ -172,6 +172,12 @@ class HeaderGUI(GUIBase):
                          self.coordinator.callbacks['forgeSPF'],
                          root=self.leftside, row=2, column=0, sticky='ew')
 
+        cve201920790 = self._add_button('CVE-2019-20790',
+                         self.coordinator.callbacks['cve201920790'],
+                         root=self.leftside, row=3, column=0, sticky='ew')
+        Tooltip(cve201920790,
+                text=self.coordinator.callbacks['cve201920790'].__doc__)
+
 
 
         for header in self.coordinator.headers.headers:

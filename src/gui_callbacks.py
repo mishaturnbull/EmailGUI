@@ -7,7 +7,7 @@ import sys
 import webbrowser
 import traceback
 
-from helpers import suggest_thread_amt, wan_ip
+from helpers import suggest_thread_amt, wan_ip, random_addr
 from prereqs import GUI_DOC
 from helper_guis import HeaderGUI, VerificationGUI, EmailEditorGUI, \
     SMTPResponseCodeLookupGUI
@@ -316,6 +316,40 @@ def handle_forgeSPF(coordinator):
 
 
 CALLBACKS.append(handle_forgeSPF)
+
+
+def handle_cve201920790(coordinator):
+    """
+    Attempt to exploit CVE-2019-20790, a bug in
+    OpenDMARC v1.3.2-1.4.x used with pypolicyd-spf
+    2.0.2, which allows allows attacks that bypass
+    SPF and DMARC authentication in situations where
+    the HELO field is inconsistent with the
+    MAIL FROM field.
+    """
+    hgui = coordinator.active_guis['headers']
+
+    try:
+        senderidx = hgui.header_list.index('sender')
+    except ValueError:
+        hgui._add_custom_header('sender')
+        senderidx = hgui.header_list.index('sender')
+    try:
+        fromidx = hgui.header_list.index('from')
+    except ValueError:
+        hgui._add_custom_header('from')
+        fromidx = hgui.header_list.index('from')
+
+    addr1 = random_addr(coordinator)
+    addr2 = addr1
+    while addr2 == addr1:
+        addr2 = random_addr(coordinator)
+
+    hgui.variables[senderidx]['value'].set(addr1)
+    hgui.variables[fromidx]['value'].set(addr2)
+
+
+CALLBACKS.append(handle_cve201920790)
 
 
 # don't add this to CALLBACKS

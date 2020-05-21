@@ -13,8 +13,8 @@
             "dispatch a second email in apology."
         ],
         "headers": {
-            "sender": "spambot@slippery-weasel.com",
-            "from": "russian-hacker@slippery-weasel.com",
+            "sender": "spambot@spammers.org",
+            "from": "russian-hacker@spammers.org",
             "reply-to": "",
             "date": "",
             "message-id": "",
@@ -50,7 +50,21 @@
         ],
         "width": 100,
         "use_starttls": true,
-        "use_auth": true
+        "use_auth": true,
+        "allowed-random-addresses": [
+            "i-dont-exist@notreal.com",
+            "nelson.p.chesterton@example.com",
+            "just.a.guy.with.an.email.bot@email.org",
+            "god@heaven.org",
+            "jesus@heaven.org",
+            "holyspirit@heaven.org",
+            "red-nine-of-hearts@deck.of.cards",
+            "whoparkedtheircar@onmysand.wich",
+            "Xx_gamerdude42069_xX@in-addr.arpa",
+            "microsoft-tech-support@scam.com",
+            "yourmom@fatmail.com",
+            "malware@mcafee.com"
+        ]
     },
     "SMTP_resp_codes": {
         "200": "Nonstandard success response",

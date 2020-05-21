@@ -7,6 +7,7 @@ all different modules of the program.
 import copy
 import sys
 import os
+import functools
 
 from emailbuilder import Email
 from headers import Headers
@@ -65,6 +66,7 @@ class Coordinator(object):
             cbname = cb.__name__.split('_')[1]
 
             def wrapit(cbfunc):
+                @functools.wraps(cbfunc)
                 def wrapped():
                     try:
                         return cbfunc(self)
