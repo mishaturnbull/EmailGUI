@@ -353,8 +353,8 @@ class EmailSender(threading.Thread):
                 if self.handler.coordinator.settings['debug']:
                     print("Sending {} at {}".format(str(i),
                                                     str(time.time())))
+                    print("1st argument: {}".format(self.message['from']))
 
-                print("1st argument: {}".format(self.message['from']))
                 server.sendmail(self.message['from'],
                                 self.handler.coordinator.contents['to'],
                                 self.message.as_string())
